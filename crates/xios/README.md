@@ -36,17 +36,26 @@ Unlike `MacOSX.sdk` (which Apple serves unauthenticated via Command Line Tools f
 
 ## 📦 Install
 
+### From binary
+
 ```sh
 cargo binstall xios
-# or build from source
-cargo install xios --locked
-cargo install xios
 ```
 
-Or download a prebuilt binary from [Releases](https://github.com/cross-toolchains/xsysroot/releases):
+### From tarball
+
+Download a prebuilt archive from [Releases](https://github.com/cross-toolchains/xsysroot/releases):
 
 ```sh
 curl -fsSL https://github.com/cross-toolchains/xsysroot/releases/latest/download/xios-x86_64-unknown-linux-musl.tar.gz | tar -xz
+```
+
+### From source
+
+```sh
+cargo install xios --locked
+# or
+cargo install xios
 ```
 
 `xios` is a self-contained single binary (pure Rust with `flate2` and `lzma-rs` — no `xar`, `pbzx`, `cpio`, or `xz` binaries required). To cross-compile with the generated wrappers, you only need LLVM `clang` and `lld` (`ld64.lld`) on your `PATH`.

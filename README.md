@@ -29,21 +29,28 @@ no Docker, no heavy IDEs, and nothing redistributed.
 
 ## 📦 Install
 
-Install the unified `xsysroot` CLI (or any individual platform crate such as `xdroid`, `xmac`, `xios`, `xlinux`, `xohos`):
+Install the unified `xsysroot` CLI (or any individual crate: `xdroid`, `xmac`, `xios`, `xlinux`, `xohos`).
+
+### From binary
 
 ```sh
-# Prebuilt binary via cargo-binstall
 cargo binstall xsysroot
-
-# Or build from source (with lockfile)
-cargo install xsysroot --locked
-cargo install xsysroot
 ```
 
-Or download a prebuilt binary from [Releases](https://github.com/cross-toolchains/xsysroot/releases):
+### From tarball
+
+Download a prebuilt archive from [Releases](https://github.com/cross-toolchains/xsysroot/releases):
 
 ```sh
 curl -fsSL https://github.com/cross-toolchains/xsysroot/releases/latest/download/xsysroot-x86_64-unknown-linux-musl.tar.gz | tar -xz
+```
+
+### From source
+
+```sh
+cargo install xsysroot --locked
+# or
+cargo install xsysroot
 ```
 
 ## 🚀 Quick Start

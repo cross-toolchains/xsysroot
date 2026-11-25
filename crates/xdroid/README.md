@@ -50,17 +50,26 @@ Because every machine downloads the official NDK archive directly from `dl.googl
 
 ## 📦 Install
 
+### From binary
+
 ```sh
 cargo binstall xdroid
-# or build from source
-cargo install xdroid --locked
-cargo install xdroid
 ```
 
-Or download a prebuilt binary from [Releases](https://github.com/cross-toolchains/xsysroot/releases):
+### From tarball
+
+Download a prebuilt archive from [Releases](https://github.com/cross-toolchains/xsysroot/releases):
 
 ```sh
 curl -fsSL https://github.com/cross-toolchains/xsysroot/releases/latest/download/xdroid-x86_64-unknown-linux-musl.tar.gz | tar -xz
+```
+
+### From source
+
+```sh
+cargo install xdroid --locked
+# or
+cargo install xdroid
 ```
 
 `xdroid` is a self-contained single binary (pure Rust with `ureq` + `zip` — no `curl` or `unzip` required). To actually cross-compile with the generated wrappers, you only need LLVM `clang` and `lld` on your `PATH`.

@@ -36,17 +36,26 @@ hello: ELF 64-bit LSB pie executable, ARM aarch64, dynamically linked, interpret
 
 ## 📦 Install
 
+### From binary
+
 ```sh
 cargo binstall xohos
-# or build from source
-cargo install xohos --locked
-cargo install xohos
 ```
 
-Or download a prebuilt binary from [Releases](https://github.com/cross-toolchains/xsysroot/releases):
+### From tarball
+
+Download a prebuilt archive from [Releases](https://github.com/cross-toolchains/xsysroot/releases):
 
 ```sh
 curl -fsSL https://github.com/cross-toolchains/xsysroot/releases/latest/download/xohos-x86_64-unknown-linux-musl.tar.gz | tar -xz
+```
+
+### From source
+
+```sh
+cargo install xohos --locked
+# or
+cargo install xohos
 ```
 
 `xohos` is a self-contained single binary (pure Rust with `ureq`, `flate2`, and `zip` — no `curl`, `tar`, or `unzip` required). To cross-compile with the generated wrappers, you only need LLVM `clang` and `lld` on your `PATH`.
