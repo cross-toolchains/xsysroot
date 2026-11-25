@@ -136,6 +136,7 @@ fn extract_tar<R: Read>(mut reader: R, sysroot: &Path, pb: &ProgressBar) -> Resu
 
         let rel_path = sanitize_relative_path(clean_name)?;
         let out_path = sysroot.join(&rel_path);
+        #[cfg(unix)]
         let mode = parse_tar_octal(&header[100..108]).unwrap_or(0o644) as u32;
 
         match typeflag {
