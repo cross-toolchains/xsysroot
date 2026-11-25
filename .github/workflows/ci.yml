@@ -61,8 +61,9 @@ jobs:
       - name: Install LLVM clang & lld (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install llvm
+          brew install llvm lld
           echo "/opt/homebrew/opt/llvm/bin" >> "$GITHUB_PATH"
+          echo "/opt/homebrew/opt/lld/bin" >> "$GITHUB_PATH"
 
       - name: Configure LLVM clang & lld (Windows)
         if: runner.os == 'Windows'
@@ -116,7 +117,7 @@ jobs:
           "$BIN_DIR/xdroid" splat --accept-license --verbose --output "$WORK/android"
           clang --target=aarch64-linux-android21 \
             --sysroot="$WORK/android/sysroot" \
-            -fuse-ld=lld \
+            -fuse-ld=lld -nodefaultlibs -lc \
             "$WORK/hello.c" -o "$WORK/hello_android"
           test -s "$WORK/hello_android"
           if command -v file >/dev/null 2>&1; then file "$WORK/hello_android"; fi
@@ -207,7 +208,7 @@ jobs:
           "$BIN_DIR/xohos" splat --verbose --output "$WORK/ohos"
           clang --target=aarch64-linux-ohos \
             --sysroot="$WORK/ohos/sysroot" \
-            -fuse-ld=lld \
+            -fuse-ld=lld -nodefaultlibs -lc \
             "$WORK/hello.c" -o "$WORK/hello_ohos"
           test -s "$WORK/hello_ohos"
           file "$WORK/hello_ohos"
