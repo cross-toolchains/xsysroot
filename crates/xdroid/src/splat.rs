@@ -192,6 +192,7 @@ fn extract_sysroot_zip(
     pb.set_message(format_status("📦", "unpacking"));
 
     let mut extracted = 0usize;
+    let mut symlinks = xsysroot_core::SymlinkQueue::new();
     for i in 0..total_entries {
         let mut entry = archive
             .by_index(i)
@@ -224,7 +225,7 @@ fn extract_sysroot_zip(
                     rel_path.display()
                 )
             })?;
-            create_symlink(&target, &out_path)?;
+            symlinks.add(&target, &out_path)?;
             pb.inc(entry_size);
             extracted += 1;
             continue;
@@ -244,6 +245,7 @@ fn extract_sysroot_zip(
 
         extracted += 1;
     }
+    symlinks.finish()?;
     pb.finish_with_message(format_status("📦", "splatted"));
 
     if extracted == 0 {
@@ -265,25 +267,6 @@ fn sanitize_relative_path(rel: &str) -> Result<PathBuf, String> {
         }
     }
     Ok(clean)
-}
-
-#[cfg(unix)]
-fn create_symlink(target: &str, link: &Path) -> Result<(), String> {
-    if link.exists() || link.symlink_metadata().is_ok() {
-        let _ = fs::remove_file(link);
-    }
-    std::os::unix::fs::symlink(target, link).map_err(|e| {
-        format!(
-            "failed to create symlink {} -> {target}: {e}",
-            link.display()
-        )
-    })
-}
-
-#[cfg(not(unix))]
-fn create_symlink(target: &str, link: &Path) -> Result<(), String> {
-    fs::write(link, target)
-        .map_err(|e| format!("failed writing symlink placeholder {}: {e}", link.display()))
 }
 
 fn resolve_clang(explicit: Option<&Path>) -> Result<PathBuf, String> {

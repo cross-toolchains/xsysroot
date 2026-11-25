@@ -11,7 +11,12 @@ use indicatif::ProgressBar;
 const AR_MAGIC: &[u8; 8] = b"!<arch>\n";
 
 /// Extracts a Debian `.deb` package (`ar` -> `data.tar.{xz,gz}`) into `sysroot`.
-pub fn extract_deb(deb_path: &Path, sysroot: &Path, pb: &ProgressBar) -> Result<(), String> {
+pub fn extract_deb(
+    deb_path: &Path,
+    sysroot: &Path,
+    pb: &ProgressBar,
+    symlinks: &mut xsysroot_core::SymlinkQueue,
+) -> Result<(), String> {
     let mut file =
         File::open(deb_path).map_err(|e| format!("failed opening {}: {e}", deb_path.display()))?;
     let mut magic = [0u8; 8];
@@ -44,11 +49,16 @@ pub fn extract_deb(deb_path: &Path, sysroot: &Path, pb: &ProgressBar) -> Result<
                 let mut cur = Cursor::new(payload);
                 lzma_rs::xz_decompress(&mut cur, &mut tar_bytes)
                     .map_err(|e| format!("failed decompressing {name}: {e}"))?;
-                extract_tar(Cursor::new(tar_bytes), sysroot, pb)?;
+                extract_tar(Cursor::new(tar_bytes), sysroot, pb, symlinks)?;
             } else if name.ends_with(".gz") {
-                extract_tar(MultiGzDecoder::new(Cursor::new(payload)), sysroot, pb)?;
+                extract_tar(
+                    MultiGzDecoder::new(Cursor::new(payload)),
+                    sysroot,
+                    pb,
+                    symlinks,
+                )?;
             } else {
-                extract_tar(Cursor::new(payload), sysroot, pb)?;
+                extract_tar(Cursor::new(payload), sysroot, pb, symlinks)?;
             }
             return Ok(());
         }
@@ -61,13 +71,23 @@ pub fn extract_deb(deb_path: &Path, sysroot: &Path, pb: &ProgressBar) -> Result<
 }
 
 /// Extracts an Alpine `.apk` package (multi-member `.tar.gz`) into `sysroot`.
-pub fn extract_apk(apk_path: &Path, sysroot: &Path, pb: &ProgressBar) -> Result<(), String> {
+pub fn extract_apk(
+    apk_path: &Path,
+    sysroot: &Path,
+    pb: &ProgressBar,
+    symlinks: &mut xsysroot_core::SymlinkQueue,
+) -> Result<(), String> {
     let file =
         File::open(apk_path).map_err(|e| format!("failed opening {}: {e}", apk_path.display()))?;
-    extract_tar(MultiGzDecoder::new(file), sysroot, pb)
+    extract_tar(MultiGzDecoder::new(file), sysroot, pb, symlinks)
 }
 
-fn extract_tar<R: Read>(mut reader: R, sysroot: &Path, pb: &ProgressBar) -> Result<(), String> {
+fn extract_tar<R: Read>(
+    mut reader: R,
+    sysroot: &Path,
+    pb: &ProgressBar,
+    symlinks: &mut xsysroot_core::SymlinkQueue,
+) -> Result<(), String> {
     let mut header = [0u8; 512];
     let mut next_long_name: Option<String> = None;
     let mut next_long_link: Option<String> = None;
@@ -151,7 +171,7 @@ fn extract_tar<R: Read>(mut reader: R, sysroot: &Path, pb: &ProgressBar) -> Resu
                         .map_err(|e| format!("failed creating {}: {e}", parent.display()))?;
                 }
                 let target = relativize_symlink_target(&rel_path, &raw_link);
-                create_symlink(&target, &out_path)?;
+                symlinks.add(&target, &out_path)?;
                 skip_exact(&mut reader, size + pad)?;
             }
             b'1' => {
@@ -354,25 +374,6 @@ fn sanitize_relative_path(rel: &str) -> Result<PathBuf, String> {
         }
     }
     Ok(clean)
-}
-
-#[cfg(unix)]
-fn create_symlink(target: &str, link: &Path) -> Result<(), String> {
-    if link.exists() || link.symlink_metadata().is_ok() {
-        let _ = fs::remove_file(link);
-    }
-    std::os::unix::fs::symlink(target, link).map_err(|e| {
-        format!(
-            "failed to create symlink {} -> {target}: {e}",
-            link.display()
-        )
-    })
-}
-
-#[cfg(not(unix))]
-fn create_symlink(target: &str, link: &Path) -> Result<(), String> {
-    fs::write(link, target)
-        .map_err(|e| format!("failed writing symlink placeholder {}: {e}", link.display()))
 }
 
 #[cfg(test)]

@@ -85,13 +85,15 @@ pub fn run_splat(opts: &SplatOptions) -> Result<(), String> {
     pb.set_length(total_download);
     pb.set_message(format_status("📦", "unpacking"));
 
+    let mut symlinks = xsysroot_core::SymlinkQueue::new();
     for pkg in &pkgs {
         let archive_path = dl_dir.join(&pkg.filename);
         match opts.target.libc {
-            Libc::Gnu => extract_deb(&archive_path, &dest_sysroot, &pb)?,
-            Libc::Musl => extract_apk(&archive_path, &dest_sysroot, &pb)?,
+            Libc::Gnu => extract_deb(&archive_path, &dest_sysroot, &pb, &mut symlinks)?,
+            Libc::Musl => extract_apk(&archive_path, &dest_sysroot, &pb, &mut symlinks)?,
         }
     }
+    symlinks.finish()?;
 
     if opts.target.libc == Libc::Gnu {
         fixup_glibc_linker_scripts(&dest_sysroot, opts.target.multiarch_dir())?;

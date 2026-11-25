@@ -225,6 +225,7 @@ fn extract_cpio_ios_sdks<R: Read>(
 ) -> Result<ExtractStats, String> {
     let mut stats = ExtractStats::default();
     let mut total_unpacked: u64 = 0;
+    let mut symlinks = xsysroot_core::SymlinkQueue::new();
     let device_root = output_dir.join("iPhoneOS.sdk");
     let sim_root = output_dir.join("iPhoneSimulator.sdk");
 
@@ -308,7 +309,7 @@ fn extract_cpio_ios_sdks<R: Read>(
                         fs::create_dir_all(parent)
                             .map_err(|e| format!("failed creating {}: {e}", parent.display()))?;
                     }
-                    create_symlink(&target, &out_path)?;
+                    symlinks.add(&target, &out_path)?;
                     match kind {
                         IosSdkKind::Device => stats.device_files += 1,
                         IosSdkKind::Simulator => stats.simulator_files += 1,
@@ -353,6 +354,7 @@ fn extract_cpio_ios_sdks<R: Read>(
         }
     }
 
+    symlinks.finish()?;
     pb.set_length(total_unpacked);
     pb.set_position(total_unpacked);
     Ok(stats)
@@ -414,25 +416,6 @@ fn sanitize_relative_path(rel: &str) -> Result<PathBuf, String> {
         }
     }
     Ok(clean)
-}
-
-#[cfg(unix)]
-pub(crate) fn create_symlink(target: &str, link: &Path) -> Result<(), String> {
-    if link.exists() || link.symlink_metadata().is_ok() {
-        let _ = fs::remove_file(link);
-    }
-    std::os::unix::fs::symlink(target, link).map_err(|e| {
-        format!(
-            "failed to create symlink {} -> {target}: {e}",
-            link.display()
-        )
-    })
-}
-
-#[cfg(not(unix))]
-pub(crate) fn create_symlink(target: &str, link: &Path) -> Result<(), String> {
-    fs::write(link, target)
-        .map_err(|e| format!("failed writing symlink placeholder {}: {e}", link.display()))
 }
 
 #[cfg(test)]

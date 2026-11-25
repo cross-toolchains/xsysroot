@@ -132,16 +132,10 @@ jobs:
           if [ "${{ runner.os }}" = "Windows" ]; then EXT=".cmd"; fi
 
           "$BIN_DIR/xlinux" splat --target x86_64-unknown-linux-gnu --glibc 2.31 --verbose --output "$WORK/linux-gnu"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            "$WORK/linux-gnu/bin/x86_64-unknown-linux-gnu-clang${EXT}" \
-              -c "$WORK/hello.c" -o "$WORK/hello_linux_gnu.o"
-            test -s "$WORK/hello_linux_gnu.o"
-          else
-            "$WORK/linux-gnu/bin/x86_64-unknown-linux-gnu-clang${EXT}" \
-              "$WORK/hello.c" -o "$WORK/hello_linux_gnu"
-            test -s "$WORK/hello_linux_gnu"
-            file "$WORK/hello_linux_gnu"
-          fi
+          "$WORK/linux-gnu/bin/x86_64-unknown-linux-gnu-clang${EXT}" \
+            "$WORK/hello.c" -o "$WORK/hello_linux_gnu"
+          test -s "$WORK/hello_linux_gnu"
+          if command -v file >/dev/null 2>&1; then file "$WORK/hello_linux_gnu"; fi
 
           "$BIN_DIR/xlinux" splat --target aarch64-unknown-linux-musl --verbose --output "$WORK/linux-musl"
           "$WORK/linux-musl/bin/aarch64-unknown-linux-musl-clang${EXT}" \
@@ -156,16 +150,10 @@ jobs:
           EXT=""
           if [ "${{ runner.os }}" = "Windows" ]; then EXT=".cmd"; fi
           "$BIN_DIR/xmac" splat --accept-license --verbose --output "$WORK/macos"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            "$WORK/macos/bin/aarch64-apple-darwin-clang${EXT}" \
-              -c "$WORK/hello.c" -o "$WORK/hello_macos.o"
-            test -s "$WORK/hello_macos.o"
-          else
-            "$WORK/macos/bin/aarch64-apple-darwin-clang${EXT}" \
-              "$WORK/hello.c" -o "$WORK/hello_macos"
-            test -s "$WORK/hello_macos"
-            file "$WORK/hello_macos"
-          fi
+          "$WORK/macos/bin/aarch64-apple-darwin-clang${EXT}" \
+            "$WORK/hello.c" -o "$WORK/hello_macos"
+          test -s "$WORK/hello_macos"
+          if command -v file >/dev/null 2>&1; then file "$WORK/hello_macos"; fi
 
       - name: Cross-compile for iOS (xios + xybp888/iOS-SDKs)
         shell: bash
@@ -178,20 +166,18 @@ jobs:
           curl -fsSL \
             "https://github.com/xybp888/iOS-SDKs/releases/download/iOS26.5-SDKs/iPhoneOS26.5.sdk.zip" \
             -o "$WORK/ios-raw/iPhoneOS.sdk.zip"
-          unzip -q "$WORK/ios-raw/iPhoneOS.sdk.zip" -d "$WORK/ios-raw"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            tar -xf "$WORK/ios-raw/iPhoneOS.sdk.zip" -C "$WORK/ios-raw"
+          else
+            unzip -q "$WORK/ios-raw/iPhoneOS.sdk.zip" -d "$WORK/ios-raw"
+          fi
           SDK_DIR="$(find "$WORK/ios-raw" -maxdepth 2 -type d -name 'iPhoneOS*.sdk' -not -path '*/__MACOSX/*' | head -n 1)"
           test -n "$SDK_DIR"
           "$BIN_DIR/xios" splat --from "$SDK_DIR" --verbose --output "$WORK/ios"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            "$WORK/ios/bin/aarch64-apple-ios-clang${EXT}" \
-              -c "$WORK/hello.c" -o "$WORK/hello_ios.o"
-            test -s "$WORK/hello_ios.o"
-          else
-            "$WORK/ios/bin/aarch64-apple-ios-clang${EXT}" \
-              "$WORK/hello.c" -o "$WORK/hello_ios"
-            test -s "$WORK/hello_ios"
-            file "$WORK/hello_ios"
-          fi
+          "$WORK/ios/bin/aarch64-apple-ios-clang${EXT}" \
+            "$WORK/hello.c" -o "$WORK/hello_ios"
+          test -s "$WORK/hello_ios"
+          if command -v file >/dev/null 2>&1; then file "$WORK/hello_ios"; fi
 
       - name: Host Xcode.app auto-detection & simulator smoke (macOS)
         if: runner.os == 'macOS'
@@ -222,11 +208,12 @@ jobs:
           test -s "$WORK/libhello_ohos.so"
           if command -v file >/dev/null 2>&1; then file "$WORK/libhello_ohos.so"; fi
 
-      - name: Rust cargo cross-compile smoke (Linux & macOS)
-        if: runner.os != 'Windows'
+      - name: Rust cargo cross-compile smoke (Linux, macOS & Windows)
         shell: bash
         run: |
           WORK="$RUNNER_TEMP/xtest"
+          EXT=""
+          if [ "${{ runner.os }}" = "Windows" ]; then EXT=".cmd"; fi
           mkdir -p "$WORK/rust-smoke/src"
           cat <<'EOF' > "$WORK/rust-smoke/Cargo.toml"
           [package]
@@ -242,14 +229,17 @@ jobs:
 
           rustup target add x86_64-unknown-linux-gnu aarch64-apple-darwin aarch64-apple-ios
 
-          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="$WORK/linux-gnu/bin/x86_64-unknown-linux-gnu-clang" \
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="$WORK/linux-gnu/bin/x86_64-unknown-linux-gnu-clang${EXT}" \
             cargo build --manifest-path "$WORK/rust-smoke/Cargo.toml" --target x86_64-unknown-linux-gnu
-          file "$WORK/rust-smoke/target/x86_64-unknown-linux-gnu/debug/rust-smoke"
+          test -s "$WORK/rust-smoke/target/x86_64-unknown-linux-gnu/debug/rust-smoke"
+          if command -v file >/dev/null 2>&1; then file "$WORK/rust-smoke/target/x86_64-unknown-linux-gnu/debug/rust-smoke"; fi
 
-          CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER="$WORK/macos/bin/aarch64-apple-darwin-clang" \
+          CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER="$WORK/macos/bin/aarch64-apple-darwin-clang${EXT}" \
             cargo build --manifest-path "$WORK/rust-smoke/Cargo.toml" --target aarch64-apple-darwin
-          file "$WORK/rust-smoke/target/aarch64-apple-darwin/debug/rust-smoke"
+          test -s "$WORK/rust-smoke/target/aarch64-apple-darwin/debug/rust-smoke"
+          if command -v file >/dev/null 2>&1; then file "$WORK/rust-smoke/target/aarch64-apple-darwin/debug/rust-smoke"; fi
 
-          CARGO_TARGET_AARCH64_APPLE_IOS_LINKER="$WORK/ios/bin/aarch64-apple-ios-clang" \
+          CARGO_TARGET_AARCH64_APPLE_IOS_LINKER="$WORK/ios/bin/aarch64-apple-ios-clang${EXT}" \
             cargo build --manifest-path "$WORK/rust-smoke/Cargo.toml" --target aarch64-apple-ios
-          file "$WORK/rust-smoke/target/aarch64-apple-ios/debug/rust-smoke"
+          test -s "$WORK/rust-smoke/target/aarch64-apple-ios/debug/rust-smoke"
+          if command -v file >/dev/null 2>&1; then file "$WORK/rust-smoke/target/aarch64-apple-ios/debug/rust-smoke"; fi

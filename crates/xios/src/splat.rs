@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use indicatif::{ProgressBar, ProgressStyle};
 
-use crate::xip::{create_symlink, extract_ios_sdks_from_xip};
+use crate::xip::extract_ios_sdks_from_xip;
 
 pub const DEFAULT_MIN_IOS: &str = "13.0";
 
@@ -218,6 +218,17 @@ fn dir_byte_size(root: &Path) -> u64 {
 }
 
 fn copy_tree(src: &Path, dst: &Path, pb: &ProgressBar) -> Result<(), String> {
+    let mut symlinks = xsysroot_core::SymlinkQueue::new();
+    copy_tree_inner(src, dst, pb, &mut symlinks)?;
+    symlinks.finish()
+}
+
+fn copy_tree_inner(
+    src: &Path,
+    dst: &Path,
+    pb: &ProgressBar,
+    symlinks: &mut xsysroot_core::SymlinkQueue,
+) -> Result<(), String> {
     fs::create_dir_all(dst).map_err(|e| format!("failed creating {}: {e}", dst.display()))?;
     let entries =
         fs::read_dir(src).map_err(|e| format!("failed reading {}: {e}", src.display()))?;
@@ -229,9 +240,9 @@ fn copy_tree(src: &Path, dst: &Path, pb: &ProgressBar) -> Result<(), String> {
         if meta.file_type().is_symlink() {
             let target = fs::read_link(&src_path)
                 .map_err(|e| format!("failed reading symlink {}: {e}", src_path.display()))?;
-            create_symlink(&target.to_string_lossy(), &dst_path)?;
+            symlinks.add(&target.to_string_lossy(), &dst_path)?;
         } else if meta.is_dir() {
-            copy_tree(&src_path, &dst_path, pb)?;
+            copy_tree_inner(&src_path, &dst_path, pb, symlinks)?;
         } else {
             let copied = fs::copy(&src_path, &dst_path).map_err(|e| {
                 format!(
