@@ -1,13 +1,12 @@
 <div align="center">
 
-<h1>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.iconify.design/fa6-brands/linux.svg?color=%23ffffff" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.iconify.design/fa6-brands/linux.svg?color=%23000000" />
-    <img src="https://api.iconify.design/fa6-brands/linux.svg?color=%23000000" height="28" align="absmiddle" alt="Linux" />
-  </picture>
-  xlinux
-</h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://api.iconify.design/simple-icons/linux.svg?color=%23ffffff" />
+  <source media="(prefers-color-scheme: light)" srcset="https://api.iconify.design/simple-icons/linux.svg?color=%23000000" />
+  <img src="https://api.iconify.design/simple-icons/linux.svg?color=%23000000" height="56" alt="Linux" />
+</picture>
+
+<h1>xlinux</h1>
 
 **Cross-compile to Linux (`glibc` & `musl`) from anywhere.**
 

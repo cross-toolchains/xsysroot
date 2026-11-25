@@ -1,13 +1,12 @@
 <div align="center">
 
-<h1>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.iconify.design/fa6-brands/android.svg?color=%23ffffff" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.iconify.design/fa6-brands/android.svg?color=%23000000" />
-    <img src="https://api.iconify.design/fa6-brands/android.svg?color=%23000000" height="26" align="absmiddle" alt="Android" />
-  </picture>
-  xdroid
-</h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://api.iconify.design/fa6-brands/android.svg?color=%23ffffff" />
+  <source media="(prefers-color-scheme: light)" srcset="https://api.iconify.design/fa6-brands/android.svg?color=%23000000" />
+  <img src="https://api.iconify.design/fa6-brands/android.svg?color=%23000000" height="52" alt="Android" />
+</picture>
+
+<h1>xdroid</h1>
 
 **Cross-compile to Android from anywhere.**
 

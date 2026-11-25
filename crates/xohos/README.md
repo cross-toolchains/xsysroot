@@ -1,13 +1,12 @@
 <div align="center">
 
-<h1>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.iconify.design/simple-icons/harmonyos.svg?color=%23ffffff" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.iconify.design/simple-icons/harmonyos.svg?color=%23000000" />
-    <img src="https://api.iconify.design/simple-icons/harmonyos.svg?color=%23000000" height="28" align="absmiddle" alt="OpenHarmony" />
-  </picture>
-  xohos
-</h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://api.iconify.design/simple-icons/harmonyos.svg?color=%23ffffff" />
+  <source media="(prefers-color-scheme: light)" srcset="https://api.iconify.design/simple-icons/harmonyos.svg?color=%23000000" />
+  <img src="https://api.iconify.design/simple-icons/harmonyos.svg?color=%23000000" height="52" alt="OpenHarmony" />
+</picture>
+
+<h1>xohos</h1>
 
 **Cross-compile to OpenHarmony / HarmonyOS from anywhere.**
 

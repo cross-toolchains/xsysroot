@@ -1,13 +1,12 @@
 <div align="center">
 
-<h1>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.iconify.design/fa6-brands/apple.svg?color=%23ffffff" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.iconify.design/fa6-brands/apple.svg?color=%23000000" />
-    <img src="https://api.iconify.design/fa6-brands/apple.svg?color=%23000000" height="28" align="absmiddle" alt="Apple" />
-  </picture>
-  xios
-</h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://api.iconify.design/fa6-brands/apple.svg?color=%23ffffff" />
+  <source media="(prefers-color-scheme: light)" srcset="https://api.iconify.design/fa6-brands/apple.svg?color=%23000000" />
+  <img src="https://api.iconify.design/fa6-brands/apple.svg?color=%23000000" height="56" alt="Apple" />
+</picture>
+
+<h1>xios</h1>
 
 **Extract and splat minimal iOS SDK sysroots for cross-compilation.**
 
