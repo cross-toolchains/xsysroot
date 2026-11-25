@@ -218,17 +218,23 @@ jobs:
           file "$WORK/hello_ios_local" "$WORK/hello_ios_sim"
 
       - name: Cross-compile for OpenHarmony (xohos)
-        if: runner.os == 'Linux'
         shell: bash
         run: |
           BIN_DIR="$PWD/target/release"
           WORK="$RUNNER_TEMP/xtest"
           "$BIN_DIR/xohos" splat --verbose --output "$WORK/ohos"
-          "$WORK/ohos/bin/aarch64-unknown-linux-ohos-clang" \
-            -fPIC -shared -nostartfiles -nodefaultlibs -lc \
-            "$WORK/hello.c" -o "$WORK/libhello_ohos.so"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            clang --target=aarch64-linux-ohos \
+              --sysroot="$WORK/ohos/sysroot" \
+              -fPIC -shared -fuse-ld=lld -nostartfiles -nodefaultlibs -lc \
+              "$WORK/hello.c" -o "$WORK/libhello_ohos.so"
+          else
+            "$WORK/ohos/bin/aarch64-unknown-linux-ohos-clang" \
+              -fPIC -shared -nostartfiles -nodefaultlibs -lc \
+              "$WORK/hello.c" -o "$WORK/libhello_ohos.so"
+          fi
           test -s "$WORK/libhello_ohos.so"
-          file "$WORK/libhello_ohos.so"
+          if command -v file >/dev/null 2>&1; then file "$WORK/libhello_ohos.so"; fi
 
       - name: Rust cargo cross-compile smoke (Linux & macOS)
         if: runner.os != 'Windows'
