@@ -1,0 +1,14 @@
+[package]
+name = "xsysroot-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Shared terminal UI, clang discovery, shim generation, and archive helpers for xsysroot tools."
+license.workspace = true
+repository.workspace = true
+keywords = ["sysroot", "sdk", "toolchain", "cross", "compilation"]
+categories.workspace = true
+
+[dependencies]
+cli-table.workspace = true
+indicatif.workspace = true

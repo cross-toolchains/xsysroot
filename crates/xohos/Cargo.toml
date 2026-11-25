@@ -1,0 +1,29 @@
+[package]
+name = "xohos"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Utility for downloading and splatting the OpenHarmony NDK sysroot for cross-compilation."
+license.workspace = true
+repository.workspace = true
+keywords = ["openharmony", "ohos", "sysroot", "cross", "compilation"]
+categories.workspace = true
+
+[dependencies]
+clap.workspace = true
+flate2.workspace = true
+indicatif.workspace = true
+ureq.workspace = true
+xsysroot-core.workspace = true
+zip.workspace = true
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.{ archive-format }"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-fmt = "zip"
+
+[package.metadata.binstall.overrides.aarch64-pc-windows-msvc]
+pkg-fmt = "zip"

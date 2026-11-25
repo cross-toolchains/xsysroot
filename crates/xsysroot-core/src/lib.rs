@@ -1,0 +1,123 @@
+//! Shared terminal progress bars, `cli-table` rendering, LLVM `clang` discovery,
+//! wrapper script generation, and safe archive path helpers for `xsysroot` tools.
+
+use std::env;
+use std::fs;
+use std::path::{Component, Path, PathBuf};
+use std::time::Duration;
+
+use cli_table::{Cell, Style, Table, print_stdout};
+use indicatif::{ProgressBar, ProgressStyle};
+
+/// Formats an aligned icon + status label for progress bars.
+pub fn format_status(icon: &str, label: &str) -> String {
+    format!("{icon}  {label:>11}")
+}
+
+/// Creates a green `xwin`-style aligned bytes progress bar.
+pub fn make_bytes_bar(prefix: &'static str, len: u64, icon: &str, label: &str) -> ProgressBar {
+    let pb = ProgressBar::new(len);
+    if let Ok(style) = ProgressStyle::with_template(
+        "{spinner:.green} {prefix:<9.bold} [{elapsed:>3}] {wide_bar:.green} {binary_bytes:>10}/{binary_total_bytes:>10}  {msg}",
+    ) {
+        pb.set_style(style.progress_chars("█▄ "));
+    }
+    pb.set_prefix(prefix);
+    pb.set_message(format_status(icon, label));
+    pb.enable_steady_tick(Duration::from_millis(80));
+    pb
+}
+
+/// Renders a Unicode-bordered table with bold headers to stdout using `cli-table`.
+pub fn print_table(headers: &[&str], rows: Vec<Vec<String>>) {
+    let title: Vec<_> = headers.iter().map(|h| h.cell().bold(true)).collect();
+    let body: Vec<Vec<_>> = rows
+        .into_iter()
+        .map(|row| row.into_iter().map(|c| c.cell()).collect())
+        .collect();
+    let table = body.table().title(title);
+    let _ = print_stdout(table);
+}
+
+/// Resolves `~/.cache/<tool>` (or `%USERPROFILE%\.cache\<tool>` on Windows).
+pub fn default_tool_cache_dir(tool: &str) -> PathBuf {
+    let home = env::var("HOME")
+        .or_else(|_| env::var("USERPROFILE"))
+        .unwrap_or_else(|_| ".".to_string());
+    PathBuf::from(home).join(".cache").join(tool)
+}
+
+/// Resolves an LLVM `clang` binary from an explicit path, Homebrew LLVM, or `PATH`.
+pub fn resolve_clang(explicit: Option<&Path>) -> Result<PathBuf, String> {
+    if let Some(p) = explicit {
+        if p.is_file() {
+            return Ok(p.to_path_buf());
+        }
+        return Err(format!("specified --clang does not exist: {}", p.display()));
+    }
+    let exe = if cfg!(windows) { "clang.exe" } else { "clang" };
+    let mut dirs = vec![
+        PathBuf::from("/opt/homebrew/opt/llvm/bin"),
+        PathBuf::from("/usr/local/opt/llvm/bin"),
+    ];
+    if let Some(path_var) = env::var_os("PATH") {
+        dirs.extend(env::split_paths(&path_var));
+    }
+    for dir in dirs {
+        let candidate = dir.join(exe);
+        if candidate.is_file() {
+            return Ok(candidate);
+        }
+    }
+    Err("clang not found in PATH or Homebrew LLVM (pass --clang <PATH>)".to_string())
+}
+
+/// Rejects archive entry paths containing `..`, root prefixes, or drive prefixes.
+pub fn sanitize_relative_path(rel: &str) -> Result<PathBuf, String> {
+    let mut clean = PathBuf::new();
+    for comp in Path::new(rel).components() {
+        match comp {
+            Component::Normal(part) => clean.push(part),
+            Component::CurDir => {}
+            _ => return Err(format!("unsafe archive entry path: `{rel}`")),
+        }
+    }
+    Ok(clean)
+}
+
+/// Creates a symlink (replacing any existing file/link at `link`).
+#[cfg(unix)]
+pub fn create_symlink(target: &str, link: &Path) -> Result<(), String> {
+    if link.exists() || link.symlink_metadata().is_ok() {
+        let _ = fs::remove_file(link);
+    }
+    std::os::unix::fs::symlink(target, link).map_err(|e| {
+        format!(
+            "failed to create symlink {} -> {target}: {e}",
+            link.display()
+        )
+    })
+}
+
+#[cfg(not(unix))]
+pub fn create_symlink(target: &str, link: &Path) -> Result<(), String> {
+    fs::write(link, target)
+        .map_err(|e| format!("failed writing symlink placeholder {}: {e}", link.display()))
+}
+
+/// Writes an executable POSIX shell wrapper script at `path`.
+pub fn write_executable_script(path: &Path, contents: &str) -> Result<(), String> {
+    fs::write(path, contents)
+        .map_err(|e| format!("failed writing {}: {e}", path.display()))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(path)
+            .map_err(|e| format!("failed stating {}: {e}", path.display()))?
+            .permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(path, perms)
+            .map_err(|e| format!("failed chmod {}: {e}", path.display()))?;
+    }
+    Ok(())
+}

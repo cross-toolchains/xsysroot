@@ -1,0 +1,30 @@
+[package]
+name = "xsysroot"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Unified cross-platform sysroot manager for Windows, macOS, iOS, Android, Linux, and OpenHarmony."
+license.workspace = true
+repository.workspace = true
+keywords = ["sysroot", "sdk", "toolchain", "cross", "compilation"]
+categories.workspace = true
+
+[dependencies]
+clap.workspace = true
+xdroid.workspace = true
+xios.workspace = true
+xlinux.workspace = true
+xmac.workspace = true
+xohos.workspace = true
+xsysroot-core.workspace = true
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.{ archive-format }"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-fmt = "zip"
+
+[package.metadata.binstall.overrides.aarch64-pc-windows-msvc]
+pkg-fmt = "zip"

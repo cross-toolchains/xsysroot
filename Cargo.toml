@@ -1,12 +1,35 @@
-[package]
-name = "xsysroot"
+[workspace]
+resolver = "3"
+members = [
+    "crates/xsysroot",
+    "crates/xsysroot-core",
+    "crates/xdroid",
+    "crates/xios",
+    "crates/xlinux",
+    "crates/xmac",
+    "crates/xohos",
+]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 authors = ["The Xsysroot Project Developers and Contributors"]
-description = "Unified cross-platform sysroot manager for Windows, macOS, iOS, Android, Linux, and OpenHarmony."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/cross-toolchains/xsysroot"
-keywords = ["sysroot", "sdk", "toolchain", "cross", "compilation"]
 categories = ["development-tools::build-utils", "development-tools", "command-line-utilities"]
 
-[dependencies]
+[workspace.dependencies]
+clap = { version = "4", features = ["derive", "env"] }
+cli-table = { version = "0.5", default-features = false, features = ["title"] }
+flate2 = "1"
+indicatif = "0.17"
+lzma-rs = "0.3"
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
+xsysroot-core = { path = "crates/xsysroot-core", version = "0.1.0" }
+xdroid = { path = "crates/xdroid", version = "0.1.0" }
+xios = { path = "crates/xios", version = "0.1.0" }
+xlinux = { path = "crates/xlinux", version = "0.1.0" }
+xmac = { path = "crates/xmac", version = "0.1.0" }
+xohos = { path = "crates/xohos", version = "0.1.0" }
