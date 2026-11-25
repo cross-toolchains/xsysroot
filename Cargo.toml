@@ -1,0 +1,12 @@
+[package]
+name = "xsysroot"
+version = "0.1.0"
+edition = "2024"
+authors = ["The Xsysroot Project Developers and Contributors"]
+description = "Unified cross-platform sysroot manager for Windows, macOS, iOS, Android, Linux, and OpenHarmony."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/cross-toolchains/xsysroot"
+keywords = ["sysroot", "sdk", "toolchain", "cross", "compilation"]
+categories = ["development-tools::build-utils", "development-tools", "command-line-utilities"]
+
+[dependencies]
