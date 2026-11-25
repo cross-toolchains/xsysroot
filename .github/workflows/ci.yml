@@ -121,7 +121,7 @@ jobs:
               -fuse-ld=lld -nodefaultlibs -lc \
               "$WORK/hello.c" -o "$WORK/hello_android"
           else
-            "$WORK/android/bin/aarch64-linux-android21-clang" \
+            "$WORK/android/bin/aarch64-linux-android24-clang" \
               -nodefaultlibs -lc \
               "$WORK/hello.c" -o "$WORK/hello_android"
           fi
