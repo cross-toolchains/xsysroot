@@ -787,7 +787,7 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "xdroid"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "indicatif",
@@ -798,7 +798,7 @@ dependencies = [
 
 [[package]]
 name = "xios"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "flate2",
@@ -809,7 +809,7 @@ dependencies = [
 
 [[package]]
 name = "xlinux"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "flate2",
@@ -821,7 +821,7 @@ dependencies = [
 
 [[package]]
 name = "xmac"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "flate2",
@@ -833,7 +833,7 @@ dependencies = [
 
 [[package]]
 name = "xohos"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "flate2",
@@ -845,7 +845,7 @@ dependencies = [
 
 [[package]]
 name = "xsysroot"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "xdroid",
@@ -858,7 +858,7 @@ dependencies = [
 
 [[package]]
 name = "xsysroot-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "cli-table",
  "indicatif",
