@@ -107,8 +107,7 @@ pub fn create_symlink(target: &str, link: &Path) -> Result<(), String> {
 
 /// Writes an executable POSIX shell wrapper script at `path`.
 pub fn write_executable_script(path: &Path, contents: &str) -> Result<(), String> {
-    fs::write(path, contents)
-        .map_err(|e| format!("failed writing {}: {e}", path.display()))?;
+    fs::write(path, contents).map_err(|e| format!("failed writing {}: {e}", path.display()))?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

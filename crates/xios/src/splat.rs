@@ -96,22 +96,32 @@ pub fn run_splat(opts: &SplatOptions) -> Result<(), String> {
         extract_ios_sdks_from_xip(&source, &opts.output_dir, opts.include_simulator, &pb)?;
         pb.finish_with_message(format_status("📦", "splatted"));
     } else if source.is_dir() {
-        let dev_dir = resolve_developer_dir(&source)?;
-        let device_src = find_sdk_dir(&dev_dir.join("Platforms/iPhoneOS.platform/Developer/SDKs"), "iPhoneOS")?;
-        let device_bytes = dir_byte_size(&device_src);
-        let pb = make_bytes_bar("iPhoneOS", device_bytes, "📦", "unpacking");
-        copy_tree(&device_src, &device_dest, &pb)?;
-        pb.finish_with_message(format_status("📦", "splatted"));
-
-        if opts.include_simulator {
-            let sim_src = find_sdk_dir(
-                &dev_dir.join("Platforms/iPhoneSimulator.platform/Developer/SDKs"),
-                "iPhoneSimulator",
+        if is_sdk_dir(&source) {
+            let device_bytes = dir_byte_size(&source);
+            let pb = make_bytes_bar("iPhoneOS", device_bytes, "📦", "unpacking");
+            copy_tree(&source, &device_dest, &pb)?;
+            pb.finish_with_message(format_status("📦", "splatted"));
+        } else {
+            let dev_dir = resolve_developer_dir(&source)?;
+            let device_src = find_sdk_dir(
+                &dev_dir.join("Platforms/iPhoneOS.platform/Developer/SDKs"),
+                "iPhoneOS",
             )?;
-            let sim_bytes = dir_byte_size(&sim_src);
-            let sim_pb = make_bytes_bar("Simulator", sim_bytes, "📦", "unpacking");
-            copy_tree(&sim_src, &sim_dest, &sim_pb)?;
-            sim_pb.finish_with_message(format_status("📦", "splatted"));
+            let device_bytes = dir_byte_size(&device_src);
+            let pb = make_bytes_bar("iPhoneOS", device_bytes, "📦", "unpacking");
+            copy_tree(&device_src, &device_dest, &pb)?;
+            pb.finish_with_message(format_status("📦", "splatted"));
+
+            if opts.include_simulator {
+                let sim_src = find_sdk_dir(
+                    &dev_dir.join("Platforms/iPhoneSimulator.platform/Developer/SDKs"),
+                    "iPhoneSimulator",
+                )?;
+                let sim_bytes = dir_byte_size(&sim_src);
+                let sim_pb = make_bytes_bar("Simulator", sim_bytes, "📦", "unpacking");
+                copy_tree(&sim_src, &sim_dest, &sim_pb)?;
+                sim_pb.finish_with_message(format_status("📦", "splatted"));
+            }
         }
     } else {
         return Err(format!("source path does not exist: {}", source.display()));
@@ -138,6 +148,12 @@ pub fn run_splat(opts: &SplatOptions) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn is_sdk_dir(dir: &Path) -> bool {
+    dir.join("SDKSettings.plist").is_file()
+        || dir.join("SDKSettings.json").is_file()
+        || (dir.extension().is_some_and(|e| e == "sdk") && dir.join("usr/include").is_dir())
 }
 
 fn resolve_developer_dir(dir: &Path) -> Result<PathBuf, String> {
@@ -172,7 +188,12 @@ fn find_sdk_dir(sdks_root: &Path, prefix: &str) -> Result<PathBuf, String> {
             best = Some(path);
         }
     }
-    best.ok_or_else(|| format!("no {prefix}*.sdk directory found in {}", sdks_root.display()))
+    best.ok_or_else(|| {
+        format!(
+            "no {prefix}*.sdk directory found in {}",
+            sdks_root.display()
+        )
+    })
 }
 
 fn dir_byte_size(root: &Path) -> u64 {
@@ -260,7 +281,11 @@ fn generate_wrappers(
         .map_err(|e| format!("failed to create {}: {e}", bin_dir.display()))?;
 
     let clang_dir = clang.parent().unwrap_or_else(|| Path::new(""));
-    let clangxx = clang_dir.join(if cfg!(windows) { "clang++.exe" } else { "clang++" });
+    let clangxx = clang_dir.join(if cfg!(windows) {
+        "clang++.exe"
+    } else {
+        "clang++"
+    });
     let clangxx_str = if clangxx.is_file() {
         clangxx.display().to_string()
     } else {
@@ -321,8 +346,7 @@ fn write_shim(
     let contents = format!(
         "#!/bin/sh\nexec \"{compiler}\" --target={target} -isysroot \"{sdk}\" {min_ver_flag} -fuse-ld=lld \"$@\"\n"
     );
-    fs::write(path, contents)
-        .map_err(|e| format!("failed to write {}: {e}", path.display()))?;
+    fs::write(path, contents).map_err(|e| format!("failed to write {}: {e}", path.display()))?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

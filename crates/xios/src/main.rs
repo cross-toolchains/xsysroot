@@ -65,7 +65,10 @@ fn main() -> ExitCode {
                     ("iPhoneOS.platform", "iPhoneOS"),
                     ("iPhoneSimulator.platform", "iPhoneSimulator"),
                 ] {
-                    let sdks_dir = dev_dir.join("Platforms").join(platform).join("Developer/SDKs");
+                    let sdks_dir = dev_dir
+                        .join("Platforms")
+                        .join(platform)
+                        .join("Developer/SDKs");
                     if let Ok(entries) = std::fs::read_dir(&sdks_dir) {
                         for entry in entries.flatten() {
                             let path = entry.path();
@@ -83,7 +86,9 @@ fn main() -> ExitCode {
                 ExitCode::SUCCESS
             }
             None => {
-                eprintln!("[xios] no local Xcode installation found (use `xios splat --from /path/to/Xcode.xip`)");
+                eprintln!(
+                    "[xios] no local Xcode installation found (use `xios splat --from /path/to/Xcode.xip`)"
+                );
                 ExitCode::SUCCESS
             }
         },

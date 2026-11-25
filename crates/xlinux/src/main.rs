@@ -74,9 +74,7 @@ fn main() -> ExitCode {
                         t.to_string(),
                         "musl".to_string(),
                         DEFAULT_ALPINE_BRANCH.to_string(),
-                        format!(
-                            "https://dl-cdn.alpinelinux.org/alpine ({DEFAULT_ALPINE_BRANCH})"
-                        ),
+                        format!("https://dl-cdn.alpinelinux.org/alpine ({DEFAULT_ALPINE_BRANCH})"),
                     ]);
                 }
             }

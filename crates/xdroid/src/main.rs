@@ -108,9 +108,7 @@ fn main() -> ExitCode {
         }
         Commands::Splat(args) => {
             let cache_dir = args.cache_dir.unwrap_or_else(default_cache_dir);
-            let output_dir = args
-                .output
-                .unwrap_or_else(|| default_splat_dir(&cache_dir));
+            let output_dir = args.output.unwrap_or_else(|| default_splat_dir(&cache_dir));
             let opts = SplatOptions {
                 ndk_version: args.ndk,
                 api_level: args.api,

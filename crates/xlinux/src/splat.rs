@@ -150,7 +150,11 @@ fn generate_wrappers(
         .map_err(|e| format!("failed creating {}: {e}", bin_dir.display()))?;
 
     let clang_dir = clang.parent().unwrap_or_else(|| Path::new(""));
-    let clangxx = clang_dir.join(if cfg!(windows) { "clang++.exe" } else { "clang++" });
+    let clangxx = clang_dir.join(if cfg!(windows) {
+        "clang++.exe"
+    } else {
+        "clang++"
+    });
     let clangxx_str = if clangxx.is_file() {
         clangxx.display().to_string()
     } else {
@@ -190,8 +194,7 @@ fn write_shim(
     let contents = format!(
         "#!/bin/sh\nexec \"{compiler}\" --target={target} --sysroot=\"{sysroot}\"{extra} -fuse-ld=lld \"$@\"\n"
     );
-    fs::write(path, contents)
-        .map_err(|e| format!("failed writing {}: {e}", path.display()))?;
+    fs::write(path, contents).map_err(|e| format!("failed writing {}: {e}", path.display()))?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

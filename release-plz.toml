@@ -1,0 +1,53 @@
+[workspace]
+# Lockstep release configuration for the xsysroot monorepo:
+# - All 7 crates share `version_group = "xsysroot"` so versions always stay in sync.
+# - `release-plz` publishes all 7 crates to crates.io in dependency order.
+# - Only the umbrella `xsysroot` crate creates the single Git tag (`vX.Y.Z`),
+#   root `CHANGELOG.md`, and GitHub Release (to which all 6 CLI binary archives are attached).
+changelog_update = true
+dependencies_update = true
+git_release_enable = false
+git_tag_enable = false
+pr_draft = false
+pr_labels = ["release"]
+publish_allow_dirty = false
+semver_check = false
+
+[[package]]
+name = "xsysroot"
+version_group = "xsysroot"
+git_tag_enable = true
+git_tag_name = "v{{ version }}"
+git_release_enable = true
+git_release_name = "v{{ version }}"
+changelog_path = "CHANGELOG.md"
+
+[[package]]
+name = "xsysroot-core"
+version_group = "xsysroot"
+changelog_update = false
+
+[[package]]
+name = "xdroid"
+version_group = "xsysroot"
+changelog_update = false
+
+[[package]]
+name = "xmac"
+version_group = "xsysroot"
+changelog_update = false
+
+[[package]]
+name = "xios"
+version_group = "xsysroot"
+changelog_update = false
+
+[[package]]
+name = "xlinux"
+version_group = "xsysroot"
+changelog_update = false
+
+[[package]]
+name = "xohos"
+version_group = "xsysroot"
+changelog_update = false

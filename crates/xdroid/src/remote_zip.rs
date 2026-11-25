@@ -45,7 +45,13 @@ where
     let (cd_offset, cd_size) = parse_eocd(&tail)?;
 
     index_pb.set_length(cd_size);
-    let cd_bytes = fetch_range_streaming(&agent, url, cd_offset, cd_offset + cd_size - 1, Some(&index_pb))?;
+    let cd_bytes = fetch_range_streaming(
+        &agent,
+        url,
+        cd_offset,
+        cd_offset + cd_size - 1,
+        Some(&index_pb),
+    )?;
     let all_entries = parse_central_directory(&cd_bytes)?;
     index_pb.finish_with_message(format_status("📥", "downloaded"));
 
@@ -283,7 +289,9 @@ fn parse_central_directory(cd: &[u8]) -> Result<Vec<CdEntry>, String> {
     while i + 46 <= cd.len() {
         let sig = u32::from_le_bytes(cd[i..i + 4].try_into().unwrap());
         if sig != SIG_CD {
-            return Err(format!("unexpected Central Directory signature at byte {i}"));
+            return Err(format!(
+                "unexpected Central Directory signature at byte {i}"
+            ));
         }
         let name_len = u16::from_le_bytes(cd[i + 28..i + 30].try_into().unwrap()) as usize;
         let extra_len = u16::from_le_bytes(cd[i + 30..i + 32].try_into().unwrap()) as usize;

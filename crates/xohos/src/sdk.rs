@@ -233,8 +233,12 @@ mod tests {
 
     #[test]
     fn identifies_native_zip_entries() {
-        assert!(is_native_zip_entry("ohos-sdk/darwin/native-darwin-x64-5.0.0.71-Release.zip"));
+        assert!(is_native_zip_entry(
+            "ohos-sdk/darwin/native-darwin-x64-5.0.0.71-Release.zip"
+        ));
         assert!(is_native_zip_entry("native-linux-x64-4.1.7.8-Release.zip"));
-        assert!(!is_native_zip_entry("ohos-sdk/darwin/ets-darwin-x64-5.0.0.71-Release.zip"));
+        assert!(!is_native_zip_entry(
+            "ohos-sdk/darwin/ets-darwin-x64-5.0.0.71-Release.zip"
+        ));
     }
 }

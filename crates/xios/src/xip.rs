@@ -34,8 +34,8 @@ pub fn extract_ios_sdks_from_xip(
     include_simulator: bool,
     pb: &ProgressBar,
 ) -> Result<ExtractStats, String> {
-    let mut file = File::open(xip_path)
-        .map_err(|e| format!("failed to open {}: {e}", xip_path.display()))?;
+    let mut file =
+        File::open(xip_path).map_err(|e| format!("failed to open {}: {e}", xip_path.display()))?;
 
     let (content_offset, content_len) = locate_xar_content(&mut file)?;
     file.seek(SeekFrom::Start(content_offset))
@@ -393,17 +393,15 @@ fn skip_bytes<R: Read>(reader: &mut R, mut count: u64) -> Result<(), String> {
 }
 
 fn parse_octal(bytes: &[u8]) -> Result<u64, String> {
-    let s = std::str::from_utf8(bytes)
-        .map_err(|_| "invalid UTF-8 in cpio octal field".to_string())?;
-    u64::from_str_radix(s.trim(), 8)
-        .map_err(|e| format!("invalid octal `{s}` in cpio header: {e}"))
+    let s =
+        std::str::from_utf8(bytes).map_err(|_| "invalid UTF-8 in cpio octal field".to_string())?;
+    u64::from_str_radix(s.trim(), 8).map_err(|e| format!("invalid octal `{s}` in cpio header: {e}"))
 }
 
 fn parse_hex(bytes: &[u8]) -> Result<u64, String> {
-    let s = std::str::from_utf8(bytes)
-        .map_err(|_| "invalid UTF-8 in cpio hex field".to_string())?;
-    u64::from_str_radix(s.trim(), 16)
-        .map_err(|e| format!("invalid hex `{s}` in cpio header: {e}"))
+    let s =
+        std::str::from_utf8(bytes).map_err(|_| "invalid UTF-8 in cpio hex field".to_string())?;
+    u64::from_str_radix(s.trim(), 16).map_err(|e| format!("invalid hex `{s}` in cpio header: {e}"))
 }
 
 fn sanitize_relative_path(rel: &str) -> Result<PathBuf, String> {

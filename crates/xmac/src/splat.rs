@@ -43,7 +43,8 @@ pub fn default_splat_dir(cache_dir: &Path) -> PathBuf {
 
 pub fn run_download(opts: &DownloadOptions) -> Result<(), String> {
     ensure_license_accepted(opts.accept_license)?;
-    let (pkg, pkg_path, already_cached) = resolve_and_cache_pkg(opts.product_id.as_deref(), &opts.cache_dir)?;
+    let (pkg, pkg_path, already_cached) =
+        resolve_and_cache_pkg(opts.product_id.as_deref(), &opts.cache_dir)?;
 
     if already_cached {
         let cached_len = fs::metadata(&pkg_path).map(|m| m.len()).unwrap_or(pkg.size);
@@ -61,7 +62,8 @@ pub fn run_download(opts: &DownloadOptions) -> Result<(), String> {
 
 pub fn run_splat(opts: &SplatOptions) -> Result<(), String> {
     ensure_license_accepted(opts.accept_license)?;
-    let (pkg, pkg_path, already_cached) = resolve_and_cache_pkg(opts.product_id.as_deref(), &opts.cache_dir)?;
+    let (pkg, pkg_path, already_cached) =
+        resolve_and_cache_pkg(opts.product_id.as_deref(), &opts.cache_dir)?;
 
     let sdk_pb = if already_cached {
         make_bytes_bar("SDK", 0, "📦", "unpacking")
@@ -105,8 +107,12 @@ fn resolve_and_cache_pkg(
     cache_dir: &Path,
 ) -> Result<(SdkPackage, PathBuf, bool), String> {
     let dl_dir = cache_dir.join("dl");
-    fs::create_dir_all(&dl_dir)
-        .map_err(|e| format!("failed to create download cache dir {}: {e}", dl_dir.display()))?;
+    fs::create_dir_all(&dl_dir).map_err(|e| {
+        format!(
+            "failed to create download cache dir {}: {e}",
+            dl_dir.display()
+        )
+    })?;
 
     // Fast path: if a cached `.pkg` already matches (or latest cached when no product_id requested),
     // skip downloading the multi-MB Apple catalog.
@@ -226,7 +232,11 @@ fn generate_wrappers(bin_dir: &Path, sdk_dir: &Path, clang: &Path) -> Result<(),
         .map_err(|e| format!("failed to create {}: {e}", bin_dir.display()))?;
 
     let clang_dir = clang.parent().unwrap_or_else(|| Path::new(""));
-    let clangxx = clang_dir.join(if cfg!(windows) { "clang++.exe" } else { "clang++" });
+    let clangxx = clang_dir.join(if cfg!(windows) {
+        "clang++.exe"
+    } else {
+        "clang++"
+    });
     let clangxx_str = if clangxx.is_file() {
         clangxx.display().to_string()
     } else {
@@ -256,8 +266,7 @@ fn write_shim(path: &Path, compiler: &str, target: &str, sdk: &str) -> Result<()
     let contents = format!(
         "#!/bin/sh\nexec \"{compiler}\" --target={target} -isysroot \"{sdk}\" -fuse-ld=lld \"$@\"\n"
     );
-    fs::write(path, contents)
-        .map_err(|e| format!("failed to write {}: {e}", path.display()))?;
+    fs::write(path, contents).map_err(|e| format!("failed to write {}: {e}", path.display()))?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

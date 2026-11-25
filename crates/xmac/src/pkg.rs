@@ -20,8 +20,8 @@ pub fn extract_macos_sdk_pkg(
     dest_sdk_dir: &Path,
     pb: &ProgressBar,
 ) -> Result<usize, String> {
-    let mut file = File::open(pkg_path)
-        .map_err(|e| format!("failed to open {}: {e}", pkg_path.display()))?;
+    let mut file =
+        File::open(pkg_path).map_err(|e| format!("failed to open {}: {e}", pkg_path.display()))?;
 
     let (payload_offset, payload_len) = locate_xar_payload(&mut file)?;
     file.seek(SeekFrom::Start(payload_offset))
@@ -299,8 +299,9 @@ fn extract_cpio_sdk<R: Read>(
                         let mut out_file = File::create(&out_path)
                             .map_err(|e| format!("failed creating {}: {e}", out_path.display()))?;
                         let mut limited = reader.take(filesize);
-                        io::copy(&mut limited, &mut out_file)
-                            .map_err(|e| format!("failed extracting {}: {e}", out_path.display()))?;
+                        io::copy(&mut limited, &mut out_file).map_err(|e| {
+                            format!("failed extracting {}: {e}", out_path.display())
+                        })?;
                         #[cfg(unix)]
                         {
                             use std::os::unix::fs::PermissionsExt;
@@ -361,17 +362,15 @@ fn skip_bytes<R: Read>(reader: &mut R, mut count: u64) -> Result<(), String> {
 }
 
 fn parse_octal(bytes: &[u8]) -> Result<u64, String> {
-    let s = std::str::from_utf8(bytes)
-        .map_err(|_| "invalid UTF-8 in cpio octal field".to_string())?;
-    u64::from_str_radix(s.trim(), 8)
-        .map_err(|e| format!("invalid octal `{s}` in cpio header: {e}"))
+    let s =
+        std::str::from_utf8(bytes).map_err(|_| "invalid UTF-8 in cpio octal field".to_string())?;
+    u64::from_str_radix(s.trim(), 8).map_err(|e| format!("invalid octal `{s}` in cpio header: {e}"))
 }
 
 fn parse_hex(bytes: &[u8]) -> Result<u64, String> {
-    let s = std::str::from_utf8(bytes)
-        .map_err(|_| "invalid UTF-8 in cpio hex field".to_string())?;
-    u64::from_str_radix(s.trim(), 16)
-        .map_err(|e| format!("invalid hex `{s}` in cpio header: {e}"))
+    let s =
+        std::str::from_utf8(bytes).map_err(|_| "invalid UTF-8 in cpio hex field".to_string())?;
+    u64::from_str_radix(s.trim(), 16).map_err(|e| format!("invalid hex `{s}` in cpio header: {e}"))
 }
 
 fn sanitize_relative_path(rel: &str) -> Result<PathBuf, String> {

@@ -89,7 +89,9 @@ pub fn fetch_sdk_packages(show_progress: bool) -> Result<Vec<SdkPackage>, String
     let xml = String::from_utf8_lossy(&raw);
     let pkgs = parse_sucatalog_sdk_packages(&xml);
     if pkgs.is_empty() {
-        return Err("no CLTools macOS SDK packages found in Apple software update catalog".to_string());
+        return Err(
+            "no CLTools macOS SDK packages found in Apple software update catalog".to_string(),
+        );
     }
     Ok(pkgs)
 }
@@ -190,7 +192,12 @@ pub fn parse_sucatalog_sdk_packages(xml: &str) -> Vec<SdkPackage> {
         if let Some(key) = extract_tag(trimmed, "key") {
             if is_product_id(key) {
                 flush_pkg(&mut pkg_url, &mut pkg_size, &mut current_pkgs);
-                flush_product(&current_product, &current_date, &mut current_pkgs, &mut results);
+                flush_product(
+                    &current_product,
+                    &current_date,
+                    &mut current_pkgs,
+                    &mut results,
+                );
                 current_product = key.to_string();
                 current_date.clear();
             }
@@ -226,7 +233,12 @@ pub fn parse_sucatalog_sdk_packages(xml: &str) -> Vec<SdkPackage> {
     }
 
     flush_pkg(&mut pkg_url, &mut pkg_size, &mut current_pkgs);
-    flush_product(&current_product, &current_date, &mut current_pkgs, &mut results);
+    flush_product(
+        &current_product,
+        &current_date,
+        &mut current_pkgs,
+        &mut results,
+    );
 
     // Sort newest first; prefer macOSNMOS_SDK > macOS_SDK > macOSLMOS_SDK for the same date.
     results.sort_by(|a, b| {

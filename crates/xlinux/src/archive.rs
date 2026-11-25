@@ -88,13 +88,21 @@ fn extract_tar<R: Read>(mut reader: R, sysroot: &Path, pb: &ProgressBar) -> Resu
         if typeflag == b'L' {
             let data = read_vec(&mut reader, size)?;
             skip_exact(&mut reader, pad)?;
-            next_long_name = Some(String::from_utf8_lossy(&data).trim_end_matches('\0').to_string());
+            next_long_name = Some(
+                String::from_utf8_lossy(&data)
+                    .trim_end_matches('\0')
+                    .to_string(),
+            );
             continue;
         }
         if typeflag == b'K' {
             let data = read_vec(&mut reader, size)?;
             skip_exact(&mut reader, pad)?;
-            next_long_link = Some(String::from_utf8_lossy(&data).trim_end_matches('\0').to_string());
+            next_long_link = Some(
+                String::from_utf8_lossy(&data)
+                    .trim_end_matches('\0')
+                    .to_string(),
+            );
             continue;
         }
         if typeflag == b'x' || typeflag == b'g' {
@@ -175,7 +183,8 @@ fn extract_tar<R: Read>(mut reader: R, sysroot: &Path, pb: &ProgressBar) -> Resu
                 #[cfg(unix)]
                 {
                     use std::os::unix::fs::PermissionsExt;
-                    let _ = fs::set_permissions(&out_path, fs::Permissions::from_mode(mode & 0o777));
+                    let _ =
+                        fs::set_permissions(&out_path, fs::Permissions::from_mode(mode & 0o777));
                 }
                 skip_exact(&mut reader, pad)?;
                 let new_pos = pb.position() + written;

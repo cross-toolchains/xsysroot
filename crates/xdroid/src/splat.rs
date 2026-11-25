@@ -49,8 +49,12 @@ pub fn run_download(opts: &DownloadOptions) -> Result<(), String> {
     let host_os = host_ndk_os()?;
     let url = ndk_download_url(&opts.ndk_version, host_os);
     let dl_dir = opts.cache_dir.join("dl");
-    fs::create_dir_all(&dl_dir)
-        .map_err(|e| format!("failed to create download cache dir {}: {e}", dl_dir.display()))?;
+    fs::create_dir_all(&dl_dir).map_err(|e| {
+        format!(
+            "failed to create download cache dir {}: {e}",
+            dl_dir.display()
+        )
+    })?;
 
     let archive_name = format!("android-ndk-{}-{host_os}-sysroot.zip", opts.ndk_version);
     let archive_path = dl_dir.join(&archive_name);
@@ -81,8 +85,12 @@ pub fn run_splat(opts: &SplatOptions) -> Result<(), String> {
     let host_os = host_ndk_os()?;
     let url = ndk_download_url(&opts.ndk_version, host_os);
     let dl_dir = opts.cache_dir.join("dl");
-    fs::create_dir_all(&dl_dir)
-        .map_err(|e| format!("failed to create download cache dir {}: {e}", dl_dir.display()))?;
+    fs::create_dir_all(&dl_dir).map_err(|e| {
+        format!(
+            "failed to create download cache dir {}: {e}",
+            dl_dir.display()
+        )
+    })?;
 
     let archive_name = format!("android-ndk-{}-{host_os}-sysroot.zip", opts.ndk_version);
     let archive_path = dl_dir.join(&archive_name);
@@ -210,8 +218,12 @@ fn extract_sysroot_zip(
 
         if entry.is_symlink() {
             let entry_size = entry.size();
-            let target = io::read_to_string(&mut entry)
-                .map_err(|e| format!("failed reading symlink target for {}: {e}", rel_path.display()))?;
+            let target = io::read_to_string(&mut entry).map_err(|e| {
+                format!(
+                    "failed reading symlink target for {}: {e}",
+                    rel_path.display()
+                )
+            })?;
             create_symlink(&target, &out_path)?;
             pb.inc(entry_size);
             extracted += 1;
@@ -308,7 +320,11 @@ fn generate_wrappers(
         .map_err(|e| format!("failed to create {}: {e}", bin_dir.display()))?;
 
     let clang_dir = clang.parent().unwrap_or_else(|| Path::new(""));
-    let clangxx = clang_dir.join(if cfg!(windows) { "clang++.exe" } else { "clang++" });
+    let clangxx = clang_dir.join(if cfg!(windows) {
+        "clang++.exe"
+    } else {
+        "clang++"
+    });
     let clangxx_str = if clangxx.is_file() {
         clangxx.display().to_string()
     } else {
@@ -340,8 +356,7 @@ fn write_shim(path: &Path, compiler: &str, target: &str, sysroot: &str) -> Resul
     let contents = format!(
         "#!/bin/sh\nexec \"{compiler}\" --target={target} --sysroot=\"{sysroot}\" -fuse-ld=lld \"$@\"\n"
     );
-    fs::write(path, contents)
-        .map_err(|e| format!("failed to write {}: {e}", path.display()))?;
+    fs::write(path, contents).map_err(|e| format!("failed to write {}: {e}", path.display()))?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

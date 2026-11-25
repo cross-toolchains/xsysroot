@@ -71,11 +71,7 @@ pub fn resolve_debian_packages(
     let mut out = Vec::new();
     for pkg_name in wanted {
         if let Some((rel_path, size)) = map.get(pkg_name) {
-            let file_name = rel_path
-                .rsplit('/')
-                .next()
-                .unwrap_or(rel_path)
-                .to_string();
+            let file_name = rel_path.rsplit('/').next().unwrap_or(rel_path).to_string();
             out.push(RemotePkg {
                 name: pkg_name.to_string(),
                 filename: file_name,
@@ -237,10 +233,7 @@ fn extract_apkindex_text(gz_bytes: &[u8]) -> Result<String, String> {
     Err("APKINDEX file not found inside APKINDEX.tar.gz".to_string())
 }
 
-fn parse_debian_packages_index(
-    text: &str,
-    wanted: &[&str],
-) -> HashMap<String, (String, u64)> {
+fn parse_debian_packages_index(text: &str, wanted: &[&str]) -> HashMap<String, (String, u64)> {
     let mut map = HashMap::new();
     for stanza in text.split("\n\n") {
         let mut pkg = None;
