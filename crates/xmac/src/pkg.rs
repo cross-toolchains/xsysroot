@@ -263,7 +263,11 @@ fn extract_cpio_sdk<R: Read>(
         let file_type = mode & 0o170000;
 
         if let Some(rel_str) = rel_opt {
-            if !rel_str.is_empty() {
+            let skip_entry = rel_str.is_empty()
+                || rel_str.starts_with("usr/share/man/")
+                || rel_str.starts_with("usr/share/doc/")
+                || (cfg!(windows) && rel_str.contains(':'));
+            if !skip_entry {
                 let rel_path = sanitize_relative_path(rel_str)?;
                 let out_path = dest_sdk_dir.join(&rel_path);
 
