@@ -167,7 +167,7 @@ jobs:
             "https://github.com/xybp888/iOS-SDKs/releases/download/iOS26.5-SDKs/iPhoneOS26.5.sdk.zip" \
             -o "$WORK/ios-raw/iPhoneOS.sdk.zip"
           if [ "${{ runner.os }}" = "Windows" ]; then
-            tar -xf "$WORK/ios-raw/iPhoneOS.sdk.zip" -C "$WORK/ios-raw"
+            /c/Windows/System32/tar.exe -xf "$WORK/ios-raw/iPhoneOS.sdk.zip" -C "$WORK/ios-raw"
           else
             unzip -q "$WORK/ios-raw/iPhoneOS.sdk.zip" -d "$WORK/ios-raw"
           fi
