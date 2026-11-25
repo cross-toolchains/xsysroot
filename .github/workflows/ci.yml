@@ -208,7 +208,7 @@ jobs:
           "$BIN_DIR/xohos" splat --verbose --output "$WORK/ohos"
           clang --target=aarch64-linux-ohos \
             --sysroot="$WORK/ohos/sysroot" \
-            -fuse-ld=lld -nodefaultlibs -lc \
-            "$WORK/hello.c" -o "$WORK/hello_ohos"
-          test -s "$WORK/hello_ohos"
-          file "$WORK/hello_ohos"
+            -fPIC -shared -fuse-ld=lld -nostartfiles -nodefaultlibs -lc \
+            "$WORK/hello.c" -o "$WORK/libhello_ohos.so"
+          test -s "$WORK/libhello_ohos.so"
+          file "$WORK/libhello_ohos.so"
