@@ -115,10 +115,16 @@ jobs:
           BIN_DIR="$PWD/target/release"
           WORK="$RUNNER_TEMP/xtest"
           "$BIN_DIR/xdroid" splat --accept-license --verbose --output "$WORK/android"
-          clang --target=aarch64-linux-android21 \
-            --sysroot="$WORK/android/sysroot" \
-            -fuse-ld=lld -nodefaultlibs -lc \
-            "$WORK/hello.c" -o "$WORK/hello_android"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            clang --target=aarch64-linux-android21 \
+              --sysroot="$WORK/android/sysroot" \
+              -fuse-ld=lld -nodefaultlibs -lc \
+              "$WORK/hello.c" -o "$WORK/hello_android"
+          else
+            "$WORK/android/bin/aarch64-linux-android21-clang" \
+              -nodefaultlibs -lc \
+              "$WORK/hello.c" -o "$WORK/hello_android"
+          fi
           test -s "$WORK/hello_android"
           if command -v file >/dev/null 2>&1; then file "$WORK/hello_android"; fi
 
@@ -135,19 +141,21 @@ jobs:
               -c "$WORK/hello.c" -o "$WORK/hello_linux_gnu.o"
             test -s "$WORK/hello_linux_gnu.o"
           else
-            clang --target=x86_64-unknown-linux-gnu \
-              --sysroot="$WORK/linux-gnu/sysroot" \
-              --gcc-toolchain="$WORK/linux-gnu/sysroot/usr" \
-              -fuse-ld=lld \
+            "$WORK/linux-gnu/bin/x86_64-unknown-linux-gnu-clang" \
               "$WORK/hello.c" -o "$WORK/hello_linux_gnu"
             test -s "$WORK/hello_linux_gnu"
             file "$WORK/hello_linux_gnu"
           fi
 
           "$BIN_DIR/xlinux" splat --target aarch64-unknown-linux-musl --verbose --output "$WORK/linux-musl"
-          clang --target=aarch64-unknown-linux-musl \
-            --sysroot="$WORK/linux-musl/sysroot" \
-            -c "$WORK/hello.c" -o "$WORK/hello_linux_musl.o"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            clang --target=aarch64-unknown-linux-musl \
+              --sysroot="$WORK/linux-musl/sysroot" \
+              -c "$WORK/hello.c" -o "$WORK/hello_linux_musl.o"
+          else
+            "$WORK/linux-musl/bin/aarch64-unknown-linux-musl-clang" \
+              -c "$WORK/hello.c" -o "$WORK/hello_linux_musl.o"
+          fi
           test -s "$WORK/hello_linux_musl.o"
 
       - name: Cross-compile for macOS (xmac)
@@ -162,9 +170,7 @@ jobs:
               -c "$WORK/hello.c" -o "$WORK/hello_macos.o"
             test -s "$WORK/hello_macos.o"
           else
-            clang --target=aarch64-apple-darwin \
-              -isysroot "$WORK/macos/MacOSX.sdk" \
-              -fuse-ld=lld \
+            "$WORK/macos/bin/aarch64-apple-darwin-clang" \
               "$WORK/hello.c" -o "$WORK/hello_macos"
             test -s "$WORK/hello_macos"
             file "$WORK/hello_macos"
@@ -190,14 +196,26 @@ jobs:
               -c "$WORK/hello.c" -o "$WORK/hello_ios.o"
             test -s "$WORK/hello_ios.o"
           else
-            clang --target=aarch64-apple-ios \
-              -miphoneos-version-min=15.0 \
-              -isysroot "$WORK/ios/iPhoneOS.sdk" \
-              -fuse-ld=lld \
+            "$WORK/ios/bin/aarch64-apple-ios-clang" \
               "$WORK/hello.c" -o "$WORK/hello_ios"
             test -s "$WORK/hello_ios"
             file "$WORK/hello_ios"
           fi
+
+      - name: Host Xcode.app auto-detection & simulator smoke (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          BIN_DIR="$PWD/target/release"
+          WORK="$RUNNER_TEMP/xtest"
+          "$BIN_DIR/xios" splat --simulator --verbose --output "$WORK/ios-local"
+          "$WORK/ios-local/bin/aarch64-apple-ios-clang" \
+            "$WORK/hello.c" -o "$WORK/hello_ios_local"
+          "$WORK/ios-local/bin/aarch64-apple-ios-sim-clang" \
+            "$WORK/hello.c" -o "$WORK/hello_ios_sim"
+          test -s "$WORK/hello_ios_local"
+          test -s "$WORK/hello_ios_sim"
+          file "$WORK/hello_ios_local" "$WORK/hello_ios_sim"
 
       - name: Cross-compile for OpenHarmony (xohos)
         if: runner.os == 'Linux'
@@ -206,9 +224,40 @@ jobs:
           BIN_DIR="$PWD/target/release"
           WORK="$RUNNER_TEMP/xtest"
           "$BIN_DIR/xohos" splat --verbose --output "$WORK/ohos"
-          clang --target=aarch64-linux-ohos \
-            --sysroot="$WORK/ohos/sysroot" \
-            -fPIC -shared -fuse-ld=lld -nostartfiles -nodefaultlibs -lc \
+          "$WORK/ohos/bin/aarch64-linux-ohos-clang" \
+            -fPIC -shared -nostartfiles -nodefaultlibs -lc \
             "$WORK/hello.c" -o "$WORK/libhello_ohos.so"
           test -s "$WORK/libhello_ohos.so"
           file "$WORK/libhello_ohos.so"
+
+      - name: Rust cargo cross-compile smoke (Linux & macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          WORK="$RUNNER_TEMP/xtest"
+          mkdir -p "$WORK/rust-smoke/src"
+          cat <<'EOF' > "$WORK/rust-smoke/Cargo.toml"
+          [package]
+          name = "rust-smoke"
+          version = "0.1.0"
+          edition = "2024"
+          EOF
+          cat <<'EOF' > "$WORK/rust-smoke/src/main.rs"
+          fn main() {
+              println!("hello from rust xsysroot CI");
+          }
+          EOF
+
+          rustup target add x86_64-unknown-linux-gnu aarch64-apple-darwin aarch64-apple-ios
+
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="$WORK/linux-gnu/bin/x86_64-unknown-linux-gnu-clang" \
+            cargo build --manifest-path "$WORK/rust-smoke/Cargo.toml" --target x86_64-unknown-linux-gnu
+          file "$WORK/rust-smoke/target/x86_64-unknown-linux-gnu/debug/rust-smoke"
+
+          CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER="$WORK/macos/bin/aarch64-apple-darwin-clang" \
+            cargo build --manifest-path "$WORK/rust-smoke/Cargo.toml" --target aarch64-apple-darwin
+          file "$WORK/rust-smoke/target/aarch64-apple-darwin/debug/rust-smoke"
+
+          CARGO_TARGET_AARCH64_APPLE_IOS_LINKER="$WORK/ios/bin/aarch64-apple-ios-clang" \
+            cargo build --manifest-path "$WORK/rust-smoke/Cargo.toml" --target aarch64-apple-ios
+          file "$WORK/rust-smoke/target/aarch64-apple-ios/debug/rust-smoke"
