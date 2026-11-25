@@ -230,16 +230,14 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<(), String> {
         let dst_path = dst.join(entry.file_name());
         if src_path.is_dir() {
             copy_dir_recursive(&src_path, &dst_path)?;
-        } else if src_path.is_file() {
-            if fs::hard_link(&src_path, &dst_path).is_err() {
-                fs::copy(&src_path, &dst_path).map_err(|e| {
-                    format!(
-                        "failed copying {} -> {}: {e}",
-                        src_path.display(),
-                        dst_path.display()
-                    )
-                })?;
-            }
+        } else if src_path.is_file() && fs::hard_link(&src_path, &dst_path).is_err() {
+            fs::copy(&src_path, &dst_path).map_err(|e| {
+                format!(
+                    "failed copying {} -> {}: {e}",
+                    src_path.display(),
+                    dst_path.display()
+                )
+            })?;
         }
     }
     Ok(())
