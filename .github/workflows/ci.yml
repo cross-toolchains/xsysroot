@@ -224,7 +224,7 @@ jobs:
           BIN_DIR="$PWD/target/release"
           WORK="$RUNNER_TEMP/xtest"
           "$BIN_DIR/xohos" splat --verbose --output "$WORK/ohos"
-          "$WORK/ohos/bin/aarch64-linux-ohos-clang" \
+          "$WORK/ohos/bin/aarch64-unknown-linux-ohos-clang" \
             -fPIC -shared -nostartfiles -nodefaultlibs -lc \
             "$WORK/hello.c" -o "$WORK/libhello_ohos.so"
           test -s "$WORK/libhello_ohos.so"
