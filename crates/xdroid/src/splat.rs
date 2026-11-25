@@ -335,38 +335,21 @@ fn generate_wrappers(
 
     for triple in ANDROID_TRIPLES {
         let target_arg = format!("{triple}{api_level}");
-        write_shim(
-            &bin_dir.join(format!("{target_arg}-clang")),
+        let args = format!("--target={target_arg} --sysroot=\"{sysroot_str}\" -fuse-ld=lld");
+        xsysroot_core::write_clang_wrapper(
+            bin_dir,
+            &format!("{target_arg}-clang"),
             &clang_str,
-            &target_arg,
-            &sysroot_str,
+            &args,
         )?;
-        write_shim(
-            &bin_dir.join(format!("{target_arg}-clang++")),
+        xsysroot_core::write_clang_wrapper(
+            bin_dir,
+            &format!("{target_arg}-clang++"),
             &clangxx_str,
-            &target_arg,
-            &sysroot_str,
+            &args,
         )?;
     }
 
-    Ok(())
-}
-
-fn write_shim(path: &Path, compiler: &str, target: &str, sysroot: &str) -> Result<(), String> {
-    let contents = format!(
-        "#!/bin/sh\nexec \"{compiler}\" --target={target} --sysroot=\"{sysroot}\" -fuse-ld=lld \"$@\"\n"
-    );
-    fs::write(path, contents).map_err(|e| format!("failed to write {}: {e}", path.display()))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(path)
-            .map_err(|e| format!("failed to stat {}: {e}", path.display()))?
-            .permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(path, perms)
-            .map_err(|e| format!("failed to chmod {}: {e}", path.display()))?;
-    }
     Ok(())
 }
 
@@ -392,7 +375,7 @@ mod tests {
         fs::create_dir_all(&sysroot).unwrap();
 
         generate_wrappers(&bin_dir, &sysroot, Path::new("/usr/bin/clang"), 24).unwrap();
-        let aarch64_cc = bin_dir.join("aarch64-linux-android24-clang");
+        let aarch64_cc = xsysroot_core::wrapper_path(&bin_dir, "aarch64-linux-android24-clang");
         assert!(aarch64_cc.is_file());
         let text = fs::read_to_string(&aarch64_cc).unwrap();
         assert!(text.contains("--target=aarch64-linux-android24"));

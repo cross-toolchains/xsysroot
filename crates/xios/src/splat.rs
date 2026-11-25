@@ -294,19 +294,15 @@ fn generate_wrappers(
     let clang_str = clang.display().to_string();
     let device_str = device_sdk.display().to_string();
 
-    write_shim(
-        &bin_dir.join("aarch64-apple-ios-clang"),
-        &clang_str,
-        "aarch64-apple-ios",
-        &device_str,
-        &format!("-miphoneos-version-min={min_ios}"),
-    )?;
-    write_shim(
-        &bin_dir.join("aarch64-apple-ios-clang++"),
+    let dev_args = format!(
+        "--target=aarch64-apple-ios -isysroot \"{device_str}\" -miphoneos-version-min={min_ios} -fuse-ld=lld"
+    );
+    xsysroot_core::write_clang_wrapper(bin_dir, "aarch64-apple-ios-clang", &clang_str, &dev_args)?;
+    xsysroot_core::write_clang_wrapper(
+        bin_dir,
+        "aarch64-apple-ios-clang++",
         &clangxx_str,
-        "aarch64-apple-ios",
-        &device_str,
-        &format!("-miphoneos-version-min={min_ios}"),
+        &dev_args,
     )?;
 
     if let Some(sim) = sim_sdk {
@@ -316,47 +312,23 @@ fn generate_wrappers(
             ("aarch64-apple-ios-sim", "aarch64-apple-ios-simulator"),
             ("x86_64-apple-ios", "x86_64-apple-ios-simulator"),
         ] {
-            write_shim(
-                &bin_dir.join(format!("{shim_name}-clang")),
+            let sim_args =
+                format!("--target={target} -isysroot \"{sim_str}\" {sim_flag} -fuse-ld=lld");
+            xsysroot_core::write_clang_wrapper(
+                bin_dir,
+                &format!("{shim_name}-clang"),
                 &clang_str,
-                target,
-                &sim_str,
-                &sim_flag,
+                &sim_args,
             )?;
-            write_shim(
-                &bin_dir.join(format!("{shim_name}-clang++")),
+            xsysroot_core::write_clang_wrapper(
+                bin_dir,
+                &format!("{shim_name}-clang++"),
                 &clangxx_str,
-                target,
-                &sim_str,
-                &sim_flag,
+                &sim_args,
             )?;
         }
     }
 
-    Ok(())
-}
-
-fn write_shim(
-    path: &Path,
-    compiler: &str,
-    target: &str,
-    sdk: &str,
-    min_ver_flag: &str,
-) -> Result<(), String> {
-    let contents = format!(
-        "#!/bin/sh\nexec \"{compiler}\" --target={target} -isysroot \"{sdk}\" {min_ver_flag} -fuse-ld=lld \"$@\"\n"
-    );
-    fs::write(path, contents).map_err(|e| format!("failed to write {}: {e}", path.display()))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(path)
-            .map_err(|e| format!("failed to stat {}: {e}", path.display()))?
-            .permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(path, perms)
-            .map_err(|e| format!("failed to chmod {}: {e}", path.display()))?;
-    }
     Ok(())
 }
 
@@ -383,11 +355,19 @@ mod tests {
         )
         .unwrap();
 
-        let dev_cc = fs::read_to_string(bin_dir.join("aarch64-apple-ios-clang")).unwrap();
+        let dev_cc = fs::read_to_string(xsysroot_core::wrapper_path(
+            &bin_dir,
+            "aarch64-apple-ios-clang",
+        ))
+        .unwrap();
         assert!(dev_cc.contains("--target=aarch64-apple-ios"));
         assert!(dev_cc.contains("-miphoneos-version-min=15.0"));
 
-        let sim_cc = fs::read_to_string(bin_dir.join("aarch64-apple-ios-sim-clang")).unwrap();
+        let sim_cc = fs::read_to_string(xsysroot_core::wrapper_path(
+            &bin_dir,
+            "aarch64-apple-ios-sim-clang",
+        ))
+        .unwrap();
         assert!(sim_cc.contains("--target=aarch64-apple-ios-simulator"));
         assert!(sim_cc.contains("-mios-simulator-version-min=15.0"));
 

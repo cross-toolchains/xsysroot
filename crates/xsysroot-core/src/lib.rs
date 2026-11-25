@@ -105,6 +105,34 @@ pub fn create_symlink(target: &str, link: &Path) -> Result<(), String> {
         .map_err(|e| format!("failed writing symlink placeholder {}: {e}", link.display()))
 }
 
+/// Returns the platform-native wrapper path inside `bin_dir`
+/// (`<name>.cmd` on Windows, `<name>` on Unix).
+pub fn wrapper_path(bin_dir: &Path, name: &str) -> PathBuf {
+    if cfg!(windows) {
+        bin_dir.join(format!("{name}.cmd"))
+    } else {
+        bin_dir.join(name)
+    }
+}
+
+/// Writes a platform-native compiler wrapper script (`<name>.cmd` on Windows,
+/// executable POSIX `#!/bin/sh` on Unix).
+pub fn write_clang_wrapper(
+    bin_dir: &Path,
+    name: &str,
+    compiler: &str,
+    args: &str,
+) -> Result<PathBuf, String> {
+    let path = wrapper_path(bin_dir, name);
+    let contents = if cfg!(windows) {
+        format!("@echo off\r\n\"{compiler}\" {args} %*\r\n")
+    } else {
+        format!("#!/bin/sh\nexec \"{compiler}\" {args} \"$@\"\n")
+    };
+    write_executable_script(&path, &contents)?;
+    Ok(path)
+}
+
 /// Writes an executable POSIX shell wrapper script at `path`.
 pub fn write_executable_script(path: &Path, contents: &str) -> Result<(), String> {
     fs::write(path, contents).map_err(|e| format!("failed writing {}: {e}", path.display()))?;

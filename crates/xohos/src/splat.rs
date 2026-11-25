@@ -307,38 +307,21 @@ fn generate_wrappers(bin_dir: &Path, sysroot: &Path, clang: &Path) -> Result<(),
     let sysroot_str = sysroot.display().to_string();
 
     for &(wrapper_prefix, clang_target) in OHOS_TARGETS {
-        write_shim(
-            &bin_dir.join(format!("{wrapper_prefix}-clang")),
+        let args = format!("--target={clang_target} --sysroot=\"{sysroot_str}\" -fuse-ld=lld");
+        xsysroot_core::write_clang_wrapper(
+            bin_dir,
+            &format!("{wrapper_prefix}-clang"),
             &clang_str,
-            clang_target,
-            &sysroot_str,
+            &args,
         )?;
-        write_shim(
-            &bin_dir.join(format!("{wrapper_prefix}-clang++")),
+        xsysroot_core::write_clang_wrapper(
+            bin_dir,
+            &format!("{wrapper_prefix}-clang++"),
             &clangxx_str,
-            clang_target,
-            &sysroot_str,
+            &args,
         )?;
     }
 
-    Ok(())
-}
-
-fn write_shim(path: &Path, compiler: &str, target: &str, sysroot: &str) -> Result<(), String> {
-    let contents = format!(
-        "#!/bin/sh\nexec \"{compiler}\" --target={target} --sysroot=\"{sysroot}\" -fuse-ld=lld \"$@\"\n"
-    );
-    fs::write(path, contents).map_err(|e| format!("failed to write {}: {e}", path.display()))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(path)
-            .map_err(|e| format!("failed to stat {}: {e}", path.display()))?
-            .permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(path, perms)
-            .map_err(|e| format!("failed to chmod {}: {e}", path.display()))?;
-    }
     Ok(())
 }
 
@@ -368,7 +351,11 @@ mod tests {
         fs::create_dir_all(&sysroot).unwrap();
 
         generate_wrappers(&bin_dir, &sysroot, Path::new("/usr/bin/clang")).unwrap();
-        let arm64 = fs::read_to_string(bin_dir.join("aarch64-unknown-linux-ohos-clang")).unwrap();
+        let arm64 = fs::read_to_string(xsysroot_core::wrapper_path(
+            &bin_dir,
+            "aarch64-unknown-linux-ohos-clang",
+        ))
+        .unwrap();
         assert!(arm64.contains("--target=aarch64-linux-ohos"));
         assert!(arm64.contains("--sysroot="));
 

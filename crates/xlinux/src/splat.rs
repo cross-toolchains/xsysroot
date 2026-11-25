@@ -167,44 +167,22 @@ fn generate_wrappers(
         Libc::Musl => String::new(),
     };
 
-    write_shim(
-        &bin_dir.join(format!("{}-clang", target.triple)),
-        &clang_str,
-        &target.triple,
-        &sysroot_str,
-        &extra,
-    )?;
-    write_shim(
-        &bin_dir.join(format!("{}-clang++", target.triple)),
-        &clangxx_str,
-        &target.triple,
-        &sysroot_str,
-        &extra,
-    )?;
-    Ok(())
-}
-
-fn write_shim(
-    path: &Path,
-    compiler: &str,
-    target: &str,
-    sysroot: &str,
-    extra: &str,
-) -> Result<(), String> {
-    let contents = format!(
-        "#!/bin/sh\nexec \"{compiler}\" --target={target} --sysroot=\"{sysroot}\"{extra} -fuse-ld=lld \"$@\"\n"
+    let args = format!(
+        "--target={} --sysroot=\"{sysroot_str}\"{extra} -fuse-ld=lld",
+        target.triple
     );
-    fs::write(path, contents).map_err(|e| format!("failed writing {}: {e}", path.display()))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(path)
-            .map_err(|e| format!("failed stating {}: {e}", path.display()))?
-            .permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(path, perms)
-            .map_err(|e| format!("failed chmod {}: {e}", path.display()))?;
-    }
+    xsysroot_core::write_clang_wrapper(
+        bin_dir,
+        &format!("{}-clang", target.triple),
+        &clang_str,
+        &args,
+    )?;
+    xsysroot_core::write_clang_wrapper(
+        bin_dir,
+        &format!("{}-clang++", target.triple),
+        &clangxx_str,
+        &args,
+    )?;
     Ok(())
 }
 
@@ -222,7 +200,11 @@ mod tests {
 
         let (gnu, _) = LinuxTarget::parse("x86_64-unknown-linux-gnu").unwrap();
         generate_wrappers(&bin_dir, &sysroot, &gnu, Path::new("/usr/bin/clang")).unwrap();
-        let cc = fs::read_to_string(bin_dir.join("x86_64-unknown-linux-gnu-clang")).unwrap();
+        let cc = fs::read_to_string(xsysroot_core::wrapper_path(
+            &bin_dir,
+            "x86_64-unknown-linux-gnu-clang",
+        ))
+        .unwrap();
         assert!(cc.contains("--target=x86_64-unknown-linux-gnu"));
         assert!(cc.contains("--gcc-toolchain="));
 

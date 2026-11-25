@@ -246,36 +246,14 @@ fn generate_wrappers(bin_dir: &Path, sdk_dir: &Path, clang: &Path) -> Result<(),
     let sdk_str = sdk_dir.display().to_string();
 
     for triple in MACOS_TRIPLES {
-        write_shim(
-            &bin_dir.join(format!("{triple}-clang")),
-            &clang_str,
-            triple,
-            &sdk_str,
-        )?;
-        write_shim(
-            &bin_dir.join(format!("{triple}-clang++")),
+        let args = format!("--target={triple} -isysroot \"{sdk_str}\" -fuse-ld=lld");
+        xsysroot_core::write_clang_wrapper(bin_dir, &format!("{triple}-clang"), &clang_str, &args)?;
+        xsysroot_core::write_clang_wrapper(
+            bin_dir,
+            &format!("{triple}-clang++"),
             &clangxx_str,
-            triple,
-            &sdk_str,
+            &args,
         )?;
-    }
-    Ok(())
-}
-
-fn write_shim(path: &Path, compiler: &str, target: &str, sdk: &str) -> Result<(), String> {
-    let contents = format!(
-        "#!/bin/sh\nexec \"{compiler}\" --target={target} -isysroot \"{sdk}\" -fuse-ld=lld \"$@\"\n"
-    );
-    fs::write(path, contents).map_err(|e| format!("failed to write {}: {e}", path.display()))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(path)
-            .map_err(|e| format!("failed to stat {}: {e}", path.display()))?
-            .permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(path, perms)
-            .map_err(|e| format!("failed to chmod {}: {e}", path.display()))?;
     }
     Ok(())
 }
@@ -300,7 +278,7 @@ mod tests {
         fs::create_dir_all(&sdk_dir).unwrap();
 
         generate_wrappers(&bin_dir, &sdk_dir, Path::new("/usr/bin/clang")).unwrap();
-        let arm_cc = bin_dir.join("aarch64-apple-darwin-clang");
+        let arm_cc = xsysroot_core::wrapper_path(&bin_dir, "aarch64-apple-darwin-clang");
         assert!(arm_cc.is_file());
         let text = fs::read_to_string(&arm_cc).unwrap();
         assert!(text.contains("--target=aarch64-apple-darwin"));

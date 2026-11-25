@@ -114,17 +114,12 @@ jobs:
         run: |
           BIN_DIR="$PWD/target/release"
           WORK="$RUNNER_TEMP/xtest"
+          EXT=""
+          if [ "${{ runner.os }}" = "Windows" ]; then EXT=".cmd"; fi
           "$BIN_DIR/xdroid" splat --accept-license --verbose --output "$WORK/android"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            clang --target=aarch64-linux-android21 \
-              --sysroot="$WORK/android/sysroot" \
-              -fuse-ld=lld -nodefaultlibs -lc \
-              "$WORK/hello.c" -o "$WORK/hello_android"
-          else
-            "$WORK/android/bin/aarch64-linux-android24-clang" \
-              -nodefaultlibs -lc \
-              "$WORK/hello.c" -o "$WORK/hello_android"
-          fi
+          "$WORK/android/bin/aarch64-linux-android24-clang${EXT}" \
+            -nodefaultlibs -lc \
+            "$WORK/hello.c" -o "$WORK/hello_android"
           test -s "$WORK/hello_android"
           if command -v file >/dev/null 2>&1; then file "$WORK/hello_android"; fi
 
@@ -133,29 +128,24 @@ jobs:
         run: |
           BIN_DIR="$PWD/target/release"
           WORK="$RUNNER_TEMP/xtest"
+          EXT=""
+          if [ "${{ runner.os }}" = "Windows" ]; then EXT=".cmd"; fi
 
           "$BIN_DIR/xlinux" splat --target x86_64-unknown-linux-gnu --glibc 2.31 --verbose --output "$WORK/linux-gnu"
           if [ "${{ runner.os }}" = "Windows" ]; then
-            clang --target=x86_64-unknown-linux-gnu \
-              --sysroot="$WORK/linux-gnu/sysroot" \
+            "$WORK/linux-gnu/bin/x86_64-unknown-linux-gnu-clang${EXT}" \
               -c "$WORK/hello.c" -o "$WORK/hello_linux_gnu.o"
             test -s "$WORK/hello_linux_gnu.o"
           else
-            "$WORK/linux-gnu/bin/x86_64-unknown-linux-gnu-clang" \
+            "$WORK/linux-gnu/bin/x86_64-unknown-linux-gnu-clang${EXT}" \
               "$WORK/hello.c" -o "$WORK/hello_linux_gnu"
             test -s "$WORK/hello_linux_gnu"
             file "$WORK/hello_linux_gnu"
           fi
 
           "$BIN_DIR/xlinux" splat --target aarch64-unknown-linux-musl --verbose --output "$WORK/linux-musl"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            clang --target=aarch64-unknown-linux-musl \
-              --sysroot="$WORK/linux-musl/sysroot" \
-              -c "$WORK/hello.c" -o "$WORK/hello_linux_musl.o"
-          else
-            "$WORK/linux-musl/bin/aarch64-unknown-linux-musl-clang" \
-              -c "$WORK/hello.c" -o "$WORK/hello_linux_musl.o"
-          fi
+          "$WORK/linux-musl/bin/aarch64-unknown-linux-musl-clang${EXT}" \
+            -c "$WORK/hello.c" -o "$WORK/hello_linux_musl.o"
           test -s "$WORK/hello_linux_musl.o"
 
       - name: Cross-compile for macOS (xmac)
@@ -163,14 +153,15 @@ jobs:
         run: |
           BIN_DIR="$PWD/target/release"
           WORK="$RUNNER_TEMP/xtest"
+          EXT=""
+          if [ "${{ runner.os }}" = "Windows" ]; then EXT=".cmd"; fi
           "$BIN_DIR/xmac" splat --accept-license --verbose --output "$WORK/macos"
           if [ "${{ runner.os }}" = "Windows" ]; then
-            clang --target=aarch64-apple-darwin \
-              -isysroot "$WORK/macos/MacOSX.sdk" \
+            "$WORK/macos/bin/aarch64-apple-darwin-clang${EXT}" \
               -c "$WORK/hello.c" -o "$WORK/hello_macos.o"
             test -s "$WORK/hello_macos.o"
           else
-            "$WORK/macos/bin/aarch64-apple-darwin-clang" \
+            "$WORK/macos/bin/aarch64-apple-darwin-clang${EXT}" \
               "$WORK/hello.c" -o "$WORK/hello_macos"
             test -s "$WORK/hello_macos"
             file "$WORK/hello_macos"
@@ -181,6 +172,8 @@ jobs:
         run: |
           BIN_DIR="$PWD/target/release"
           WORK="$RUNNER_TEMP/xtest"
+          EXT=""
+          if [ "${{ runner.os }}" = "Windows" ]; then EXT=".cmd"; fi
           mkdir -p "$WORK/ios-raw"
           curl -fsSL \
             "https://github.com/xybp888/iOS-SDKs/releases/download/iOS26.5-SDKs/iPhoneOS26.5.sdk.zip" \
@@ -190,13 +183,11 @@ jobs:
           test -n "$SDK_DIR"
           "$BIN_DIR/xios" splat --from "$SDK_DIR" --verbose --output "$WORK/ios"
           if [ "${{ runner.os }}" = "Windows" ]; then
-            clang --target=aarch64-apple-ios \
-              -miphoneos-version-min=15.0 \
-              -isysroot "$WORK/ios/iPhoneOS.sdk" \
+            "$WORK/ios/bin/aarch64-apple-ios-clang${EXT}" \
               -c "$WORK/hello.c" -o "$WORK/hello_ios.o"
             test -s "$WORK/hello_ios.o"
           else
-            "$WORK/ios/bin/aarch64-apple-ios-clang" \
+            "$WORK/ios/bin/aarch64-apple-ios-clang${EXT}" \
               "$WORK/hello.c" -o "$WORK/hello_ios"
             test -s "$WORK/hello_ios"
             file "$WORK/hello_ios"
@@ -222,17 +213,12 @@ jobs:
         run: |
           BIN_DIR="$PWD/target/release"
           WORK="$RUNNER_TEMP/xtest"
+          EXT=""
+          if [ "${{ runner.os }}" = "Windows" ]; then EXT=".cmd"; fi
           "$BIN_DIR/xohos" splat --verbose --output "$WORK/ohos"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            clang --target=aarch64-linux-ohos \
-              --sysroot="$WORK/ohos/sysroot" \
-              -fPIC -shared -fuse-ld=lld -nostartfiles -nodefaultlibs -lc \
-              "$WORK/hello.c" -o "$WORK/libhello_ohos.so"
-          else
-            "$WORK/ohos/bin/aarch64-unknown-linux-ohos-clang" \
-              -fPIC -shared -nostartfiles -nodefaultlibs -lc \
-              "$WORK/hello.c" -o "$WORK/libhello_ohos.so"
-          fi
+          "$WORK/ohos/bin/aarch64-unknown-linux-ohos-clang${EXT}" \
+            -fPIC -shared -nostartfiles -nodefaultlibs -lc \
+            "$WORK/hello.c" -o "$WORK/libhello_ohos.so"
           test -s "$WORK/libhello_ohos.so"
           if command -v file >/dev/null 2>&1; then file "$WORK/libhello_ohos.so"; fi
 
