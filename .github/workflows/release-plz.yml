@@ -111,6 +111,9 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             archive: zip
+          - target: aarch64-pc-windows-msvc
+            os: windows-11-arm
+            archive: zip
     env:
       RELEASE_TAG: ${{ needs.release-plz-release.outputs.tag || inputs.tag }}
     steps:
