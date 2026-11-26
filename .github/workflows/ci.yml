@@ -238,7 +238,8 @@ jobs:
           test -s "$WORK/rust-smoke/target/x86_64-unknown-linux-gnu/debug/rust-smoke"
           if command -v file >/dev/null 2>&1; then file "$WORK/rust-smoke/target/x86_64-unknown-linux-gnu/debug/rust-smoke"; fi
 
-          cargo build --manifest-path "$WORK/rust-smoke/Cargo.toml" --target aarch64-unknown-linux-musl
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER="$WORK/linux-musl/bin/aarch64-unknown-linux-musl-clang${EXT}" \
+            cargo build --manifest-path "$WORK/rust-smoke/Cargo.toml" --target aarch64-unknown-linux-musl
           test -s "$WORK/rust-smoke/target/aarch64-unknown-linux-musl/debug/rust-smoke"
           if command -v file >/dev/null 2>&1; then file "$WORK/rust-smoke/target/aarch64-unknown-linux-musl/debug/rust-smoke"; fi
 
