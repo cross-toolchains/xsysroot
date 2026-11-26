@@ -109,18 +109,25 @@ pub fn run_splat(opts: &SplatOptions) -> Result<(), String> {
     };
 
     let dest_sysroot = opts.output_dir.join("sysroot");
+    let dest_resource_dir = opts.output_dir.join("resource-dir");
     if dest_sysroot.exists() {
         fs::remove_dir_all(&dest_sysroot)
             .map_err(|e| format!("failed to clean {}: {e}", dest_sysroot.display()))?;
     }
+    if dest_resource_dir.exists() {
+        fs::remove_dir_all(&dest_resource_dir)
+            .map_err(|e| format!("failed to clean {}: {e}", dest_resource_dir.display()))?;
+    }
     fs::create_dir_all(&dest_sysroot)
         .map_err(|e| format!("failed to create {}: {e}", dest_sysroot.display()))?;
+    fs::create_dir_all(&dest_resource_dir)
+        .map_err(|e| format!("failed to create {}: {e}", dest_resource_dir.display()))?;
 
-    extract_sysroot_zip(&native_zip, &dest_sysroot, &pb)?;
+    extract_sysroot_zip(&native_zip, &dest_sysroot, &dest_resource_dir, &pb)?;
 
     if let Ok(clang) = resolve_clang(opts.clang_bin.as_deref()) {
         let bin_dir = opts.output_dir.join("bin");
-        generate_wrappers(&bin_dir, &dest_sysroot, &clang)?;
+        generate_wrappers(&bin_dir, &dest_sysroot, &dest_resource_dir, &clang)?;
         if opts.verbose {
             eprintln!(
                 "[xohos] ready: sysroot at {}, wrappers at {}",
@@ -135,9 +142,69 @@ pub fn run_splat(opts: &SplatOptions) -> Result<(), String> {
     Ok(())
 }
 
+/// Classifies OpenHarmony LLVM runtime entries inside `native-*.zip` that are
+/// required to link full C/C++/Rust binaries with a generic host LLVM `clang`.
+enum OhosRuntimeTarget {
+    /// Extract into `<resource-dir>/lib/<triple>/<file>` (and mirror CRT objects into `sysroot`).
+    ResourceLib {
+        triple: &'static str,
+        file: &'static str,
+    },
+    /// Extract into `<sysroot>/usr/lib/<triple>/libunwind.a`.
+    SysrootLib {
+        triple: &'static str,
+        file: &'static str,
+    },
+}
+
+fn classify_ohos_runtime_entry(name: &str) -> Option<OhosRuntimeTarget> {
+    const TRIPLES: &[&str] = &["aarch64-linux-ohos", "arm-linux-ohos", "x86_64-linux-ohos"];
+    if let Some((_, after)) = name.split_once("/llvm/lib/clang/")
+        && let Some((_, rest)) = after.split_once("/lib/")
+    {
+        for &triple in TRIPLES {
+            if let Some(file) = rest.strip_prefix(&format!("{triple}/")) {
+                match file {
+                    "libclang_rt.builtins.a" => {
+                        return Some(OhosRuntimeTarget::ResourceLib {
+                            triple,
+                            file: "libclang_rt.builtins.a",
+                        });
+                    }
+                    "clang_rt.crtbegin.o" => {
+                        return Some(OhosRuntimeTarget::ResourceLib {
+                            triple,
+                            file: "clang_rt.crtbegin.o",
+                        });
+                    }
+                    "clang_rt.crtend.o" => {
+                        return Some(OhosRuntimeTarget::ResourceLib {
+                            triple,
+                            file: "clang_rt.crtend.o",
+                        });
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    if let Some((_, rest)) = name.split_once("/llvm/lib/") {
+        for &triple in TRIPLES {
+            if rest == format!("{triple}/libunwind.a") {
+                return Some(OhosRuntimeTarget::SysrootLib {
+                    triple,
+                    file: "libunwind.a",
+                });
+            }
+        }
+    }
+    None
+}
+
 fn extract_sysroot_zip(
     archive_path: &Path,
     dest_sysroot: &Path,
+    dest_resource_dir: &Path,
     pb: &ProgressBar,
 ) -> Result<(), String> {
     let file = File::open(archive_path)
@@ -149,7 +216,8 @@ fn extract_sysroot_zip(
     let mut total_uncompressed: u64 = 0;
     for i in 0..total_entries {
         if let Ok(entry) = archive.by_index_raw(i)
-            && strip_ohos_sysroot_prefix(entry.name()).is_some()
+            && (strip_ohos_sysroot_prefix(entry.name()).is_some()
+                || classify_ohos_runtime_entry(entry.name()).is_some())
         {
             total_uncompressed = total_uncompressed.saturating_add(entry.size());
         }
@@ -165,6 +233,53 @@ fn extract_sysroot_zip(
         let mut entry = archive
             .by_index(i)
             .map_err(|e| format!("failed reading zip entry #{i}: {e}"))?;
+
+        if let Some(rt) = classify_ohos_runtime_entry(entry.name()) {
+            match rt {
+                OhosRuntimeTarget::ResourceLib { triple, file } => {
+                    let out_path = dest_resource_dir.join("lib").join(triple).join(file);
+                    if let Some(parent) = out_path.parent() {
+                        fs::create_dir_all(parent)
+                            .map_err(|e| format!("failed creating {}: {e}", parent.display()))?;
+                    }
+                    let mut out_file = File::create(&out_path)
+                        .map_err(|e| format!("failed creating {}: {e}", out_path.display()))?;
+                    let written = io::copy(&mut entry, &mut out_file)
+                        .map_err(|e| format!("failed extracting {}: {e}", out_path.display()))?;
+                    pb.inc(written);
+
+                    // Also place CRT begin/end objects under sysroot/usr/lib/<triple>/ as
+                    // crtbegin{,S,T}.o / crtend{,S,T}.o for host clang drivers that look there.
+                    let sysroot_lib = dest_sysroot.join("usr/lib").join(triple);
+                    fs::create_dir_all(&sysroot_lib)
+                        .map_err(|e| format!("failed creating {}: {e}", sysroot_lib.display()))?;
+                    if file == "clang_rt.crtbegin.o" {
+                        for alias in ["crtbegin.o", "crtbeginS.o", "crtbeginT.o"] {
+                            let _ = fs::copy(&out_path, sysroot_lib.join(alias));
+                        }
+                    } else if file == "clang_rt.crtend.o" {
+                        for alias in ["crtend.o", "crtendS.o", "crtendT.o"] {
+                            let _ = fs::copy(&out_path, sysroot_lib.join(alias));
+                        }
+                    }
+                }
+                OhosRuntimeTarget::SysrootLib { triple, file } => {
+                    let out_path = dest_sysroot.join("usr/lib").join(triple).join(file);
+                    if let Some(parent) = out_path.parent() {
+                        fs::create_dir_all(parent)
+                            .map_err(|e| format!("failed creating {}: {e}", parent.display()))?;
+                    }
+                    let mut out_file = File::create(&out_path)
+                        .map_err(|e| format!("failed creating {}: {e}", out_path.display()))?;
+                    let written = io::copy(&mut entry, &mut out_file)
+                        .map_err(|e| format!("failed extracting {}: {e}", out_path.display()))?;
+                    pb.inc(written);
+                }
+            }
+            extracted += 1;
+            continue;
+        }
+
         let Some(rel_str) = strip_ohos_sysroot_prefix(entry.name()) else {
             continue;
         };
@@ -271,7 +386,33 @@ fn resolve_clang(explicit: Option<&Path>) -> Result<PathBuf, String> {
     Err("clang not found in PATH or Homebrew LLVM (pass --clang <PATH>)".to_string())
 }
 
-fn generate_wrappers(bin_dir: &Path, sysroot: &Path, clang: &Path) -> Result<(), String> {
+fn link_host_clang_resource_headers(clang: &Path, resource_dir: &Path) {
+    let Ok(output) = std::process::Command::new(clang)
+        .arg("-print-resource-dir")
+        .output()
+    else {
+        return;
+    };
+    if !output.status.success() {
+        return;
+    }
+    let host_dir = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if host_dir.is_empty() {
+        return;
+    }
+    let host_include = Path::new(&host_dir).join("include");
+    if host_include.is_dir() {
+        let dst_include = resource_dir.join("include");
+        let _ = xsysroot_core::create_symlink(&host_include.to_string_lossy(), &dst_include);
+    }
+}
+
+fn generate_wrappers(
+    bin_dir: &Path,
+    sysroot: &Path,
+    resource_dir: &Path,
+    clang: &Path,
+) -> Result<(), String> {
     fs::create_dir_all(bin_dir)
         .map_err(|e| format!("failed to create {}: {e}", bin_dir.display()))?;
 
@@ -289,8 +430,17 @@ fn generate_wrappers(bin_dir: &Path, sysroot: &Path, clang: &Path) -> Result<(),
     let clang_str = clang.display().to_string();
     let sysroot_str = sysroot.display().to_string();
 
+    let resource_flag = if resource_dir.join("lib").is_dir() {
+        link_host_clang_resource_headers(clang, resource_dir);
+        format!(" -resource-dir \"{}\"", resource_dir.display())
+    } else {
+        String::new()
+    };
+
     for &(wrapper_prefix, clang_target) in OHOS_TARGETS {
-        let args = format!("--target={clang_target} --sysroot=\"{sysroot_str}\" -fuse-ld=lld");
+        let args = format!(
+            "--target={clang_target} --sysroot=\"{sysroot_str}\"{resource_flag} -fuse-ld=lld"
+        );
         xsysroot_core::write_clang_wrapper(
             bin_dir,
             &format!("{wrapper_prefix}-clang"),
@@ -331,9 +481,16 @@ mod tests {
         let _ = fs::remove_dir_all(&tmp);
         let bin_dir = tmp.join("bin");
         let sysroot = tmp.join("sysroot");
+        let resource_dir = tmp.join("resource-dir");
         fs::create_dir_all(&sysroot).unwrap();
 
-        generate_wrappers(&bin_dir, &sysroot, Path::new("/usr/bin/clang")).unwrap();
+        generate_wrappers(
+            &bin_dir,
+            &sysroot,
+            &resource_dir,
+            Path::new("/usr/bin/clang"),
+        )
+        .unwrap();
         let arm64 = fs::read_to_string(xsysroot_core::wrapper_path(
             &bin_dir,
             "aarch64-unknown-linux-ohos-clang",

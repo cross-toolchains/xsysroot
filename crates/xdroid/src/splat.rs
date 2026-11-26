@@ -56,13 +56,11 @@ pub fn run_download(opts: &DownloadOptions) -> Result<(), String> {
         )
     })?;
 
-    let archive_name = format!("android-ndk-{}-{host_os}-sysroot.zip", opts.ndk_version);
+    let archive_name = format!("android-ndk-{}-{host_os}-sysroot-rt.zip", opts.ndk_version);
     let archive_path = dl_dir.join(&archive_name);
 
     if !archive_path.is_file() {
-        let sysroot_pb = fetch_partial_zip(&url, &archive_path, |name| {
-            name.contains("/toolchains/llvm/prebuilt/") && name.contains("/sysroot/")
-        })?;
+        let sysroot_pb = fetch_partial_zip(&url, &archive_path, is_wanted_ndk_entry)?;
         sysroot_pb.finish_with_message(format_status("📥", "downloaded"));
     } else {
         let cd_len = local_zip_cd_size(&archive_path);
@@ -92,13 +90,11 @@ pub fn run_splat(opts: &SplatOptions) -> Result<(), String> {
         )
     })?;
 
-    let archive_name = format!("android-ndk-{}-{host_os}-sysroot.zip", opts.ndk_version);
+    let archive_name = format!("android-ndk-{}-{host_os}-sysroot-rt.zip", opts.ndk_version);
     let archive_path = dl_dir.join(&archive_name);
 
     let sysroot_pb = if !archive_path.is_file() {
-        fetch_partial_zip(&url, &archive_path, |name| {
-            name.contains("/toolchains/llvm/prebuilt/") && name.contains("/sysroot/")
-        })?
+        fetch_partial_zip(&url, &archive_path, is_wanted_ndk_entry)?
     } else {
         let cd_len = local_zip_cd_size(&archive_path);
         let index_pb = make_bytes_bar("Index", cd_len, "📥", "cached");
@@ -167,6 +163,72 @@ fn is_affirmative(input: &str) -> bool {
     matches!(input.trim().to_ascii_lowercase().as_str(), "yes" | "y")
 }
 
+/// Returns true if an NDK ZIP entry belongs to `sysroot/` or the small per-ABI
+/// LLVM runtime libraries (`libclang_rt.builtins-*-android.a`, `libunwind.a`)
+/// required to link full C/C++/Rust binaries with a generic host LLVM `clang`.
+pub fn is_wanted_ndk_entry(name: &str) -> bool {
+    if !name.contains("/toolchains/llvm/prebuilt/") {
+        return false;
+    }
+    if name.contains("/sysroot/") {
+        return true;
+    }
+    ndk_runtime_dest_rel(name).is_some()
+}
+
+/// Maps an NDK LLVM runtime archive entry (`libclang_rt.builtins-*-android.a` or
+/// `libunwind.a`) into `usr/lib/<abi-triple>/<filename>` inside `sysroot/`.
+pub fn ndk_runtime_dest_rel(name: &str) -> Option<String> {
+    let (_, after) = name.split_once("/lib/clang/")?;
+    let (_, rest) = after.split_once("/lib/linux/")?;
+    match rest {
+        "libclang_rt.builtins-aarch64-android.a" => {
+            Some("usr/lib/aarch64-linux-android/libclang_rt.builtins-aarch64-android.a".to_string())
+        }
+        "libclang_rt.builtins-arm-android.a" => {
+            Some("usr/lib/arm-linux-androideabi/libclang_rt.builtins-arm-android.a".to_string())
+        }
+        "libclang_rt.builtins-x86_64-android.a" => {
+            Some("usr/lib/x86_64-linux-android/libclang_rt.builtins-x86_64-android.a".to_string())
+        }
+        "libclang_rt.builtins-i686-android.a" => {
+            Some("usr/lib/i686-linux-android/libclang_rt.builtins-i686-android.a".to_string())
+        }
+        "aarch64/libunwind.a" => Some("usr/lib/aarch64-linux-android/libunwind.a".to_string()),
+        "arm/libunwind.a" => Some("usr/lib/arm-linux-androideabi/libunwind.a".to_string()),
+        "x86_64/libunwind.a" => Some("usr/lib/x86_64-linux-android/libunwind.a".to_string()),
+        "i386/libunwind.a" => Some("usr/lib/i686-linux-android/libunwind.a".to_string()),
+        _ => None,
+    }
+}
+
+fn write_android_libgcc_scripts(dest_sysroot: &Path) -> Result<(), String> {
+    const ABIS: &[(&str, &str)] = &[
+        (
+            "aarch64-linux-android",
+            "libclang_rt.builtins-aarch64-android.a",
+        ),
+        (
+            "arm-linux-androideabi",
+            "libclang_rt.builtins-arm-android.a",
+        ),
+        (
+            "x86_64-linux-android",
+            "libclang_rt.builtins-x86_64-android.a",
+        ),
+        ("i686-linux-android", "libclang_rt.builtins-i686-android.a"),
+    ];
+    for &(abi, builtins) in ABIS {
+        let dir = dest_sysroot.join("usr/lib").join(abi);
+        if dir.join(builtins).is_file() && dir.join("libunwind.a").is_file() {
+            let script = format!("INPUT({builtins} libunwind.a)\n");
+            fs::write(dir.join("libgcc.a"), script)
+                .map_err(|e| format!("failed writing {}/libgcc.a: {e}", dir.display()))?;
+        }
+    }
+    Ok(())
+}
+
 fn extract_sysroot_zip(
     archive_path: &Path,
     dest_sysroot: &Path,
@@ -181,7 +243,7 @@ fn extract_sysroot_zip(
     let mut total_uncompressed: u64 = 0;
     for i in 0..total_entries {
         if let Ok(entry) = archive.by_index_raw(i)
-            && entry.name().contains("/sysroot/")
+            && (entry.name().contains("/sysroot/") || ndk_runtime_dest_rel(entry.name()).is_some())
         {
             total_uncompressed = total_uncompressed.saturating_add(entry.size());
         }
@@ -197,13 +259,17 @@ fn extract_sysroot_zip(
         let mut entry = archive
             .by_index(i)
             .map_err(|e| format!("failed reading zip entry #{i}: {e}"))?;
-        let Some((_, rel_str)) = entry.name().split_once("/sysroot/") else {
+        let rel_owned: String = if let Some((_, rel_str)) = entry.name().split_once("/sysroot/") {
+            rel_str.to_string()
+        } else if let Some(rt_rel) = ndk_runtime_dest_rel(entry.name()) {
+            rt_rel
+        } else {
             continue;
         };
-        if rel_str.is_empty() {
+        if rel_owned.is_empty() {
             continue;
         }
-        let rel_path = sanitize_relative_path(rel_str)?;
+        let rel_path = sanitize_relative_path(&rel_owned)?;
         let out_path = dest_sysroot.join(&rel_path);
 
         if entry.is_dir() {
@@ -246,6 +312,7 @@ fn extract_sysroot_zip(
         extracted += 1;
     }
     symlinks.finish()?;
+    write_android_libgcc_scripts(dest_sysroot)?;
     pb.finish_with_message(format_status("📦", "splatted"));
 
     if extracted == 0 {
@@ -318,7 +385,9 @@ fn generate_wrappers(
 
     for triple in ANDROID_TRIPLES {
         let target_arg = format!("{triple}{api_level}");
-        let args = format!("--target={target_arg} --sysroot=\"{sysroot_str}\" -fuse-ld=lld");
+        let args = format!(
+            "--target={target_arg} --sysroot=\"{sysroot_str}\" --rtlib=libgcc -fuse-ld=lld"
+        );
         xsysroot_core::write_clang_wrapper(
             bin_dir,
             &format!("{target_arg}-clang"),
