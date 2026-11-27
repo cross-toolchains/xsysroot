@@ -137,10 +137,14 @@ fn run_splat_msvc(opts: &SplatOptions) -> Result<(), String> {
     let splat_cfg = msvc::SplatConfig {
         include_debug_libs: opts.include_debug_libs,
         include_debug_symbols: opts.include_debug_symbols,
-        enable_symlinks: !opts.disable_symlinks,
+        // Windows NTFS is already case-insensitive and symlinks require elevated
+        // privileges / Developer Mode on Windows hosts.
+        enable_symlinks: !opts.disable_symlinks && !cfg!(windows),
         preserve_ms_arch_notation: opts.preserve_ms_arch_notation,
         use_winsysroot_style: opts.use_winsysroot_style,
-        copy: false,
+        // Use copy when splatting outside `cache_dir` so cross-device moves
+        // (e.g. `C:\Users\...` -> `D:\...` or `~/.cache` -> `/tmp`) never fail with EXDEV.
+        copy: !opts.output_dir.starts_with(&opts.cache_dir),
         map: None,
         output: utf8_output,
     };
