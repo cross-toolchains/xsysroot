@@ -11,7 +11,9 @@ use std::time::Duration;
 
 use camino::Utf8PathBuf;
 use indicatif as ia;
-use xsysroot_core::{default_tool_cache_dir, format_status, resolve_clang, write_clang_wrapper};
+use xsysroot_core::{
+    default_tool_cache_dir, format_status, resolve_clang, write_executable_script,
+};
 
 use crate::mingw::{download_mingw_sysroot, extract_mingw_sysroot};
 use crate::msvc;
@@ -364,6 +366,30 @@ fn is_affirmative(input: &str) -> bool {
     matches!(input.trim().to_ascii_lowercase().as_str(), "yes" | "y")
 }
 
+fn wrapper_path(bin_dir: &Path, name: &str) -> PathBuf {
+    if cfg!(windows) {
+        bin_dir.join(format!("{name}.cmd"))
+    } else {
+        bin_dir.join(name)
+    }
+}
+
+fn write_clang_wrapper(
+    bin_dir: &Path,
+    name: &str,
+    compiler: &str,
+    args: &str,
+) -> Result<PathBuf, String> {
+    let path = wrapper_path(bin_dir, name);
+    let contents = if cfg!(windows) {
+        format!("@echo off\r\n\"{compiler}\" {args} %*\r\n")
+    } else {
+        format!("#!/bin/sh\nexec \"{compiler}\" {args} \"$@\"\n")
+    };
+    write_executable_script(&path, &contents)?;
+    Ok(path)
+}
+
 fn resolve_sibling_tool(clang: &Path, name: &str) -> String {
     let dir = clang.parent().unwrap_or_else(|| Path::new(""));
     let exe = if cfg!(windows) {
@@ -583,8 +609,8 @@ mod tests {
         )
         .unwrap();
 
-        let cc = xsysroot_core::wrapper_path(&msvc_bin, "x86_64-pc-windows-msvc-clang");
-        let link = xsysroot_core::wrapper_path(&msvc_bin, "x86_64-pc-windows-msvc-lld-link");
+        let cc = wrapper_path(&msvc_bin, "x86_64-pc-windows-msvc-clang");
+        let link = wrapper_path(&msvc_bin, "x86_64-pc-windows-msvc-lld-link");
         assert!(cc.is_file());
         assert!(link.is_file());
         let cc_text = fs::read_to_string(&cc).unwrap();
@@ -601,7 +627,7 @@ mod tests {
             Path::new("/usr/bin/clang"),
         )
         .unwrap();
-        let mingw_cc = xsysroot_core::wrapper_path(&mingw_bin, "aarch64-pc-windows-gnullvm-clang");
+        let mingw_cc = wrapper_path(&mingw_bin, "aarch64-pc-windows-gnullvm-clang");
         assert!(mingw_cc.is_file());
         let mingw_text = fs::read_to_string(&mingw_cc).unwrap();
         assert!(mingw_text.contains("--target=aarch64-w64-windows-gnu"));
