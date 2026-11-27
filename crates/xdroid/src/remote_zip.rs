@@ -210,6 +210,7 @@ pub fn make_bytes_bar(prefix: &'static str, len: u64, icon: &str, label: &str) -
 fn fetch_content_length(agent: &ureq::Agent, url: &str) -> Result<u64, String> {
     let resp = agent
         .head(url)
+        .header("Accept-Encoding", "identity")
         .call()
         .map_err(|e| format!("HTTP HEAD failed for {url}: {e}"))?;
     resp.headers()
@@ -244,6 +245,7 @@ fn fetch_range_streaming(
     let range = format!("bytes={start}-{end_inclusive}");
     let resp = agent
         .get(url)
+        .header("Accept-Encoding", "identity")
         .header("Range", &range)
         .call()
         .map_err(|e| format!("HTTP Range {range} failed for {url}: {e}"))?;
