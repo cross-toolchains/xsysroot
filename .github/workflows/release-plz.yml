@@ -145,7 +145,7 @@ jobs:
         run: |
           mkdir -p dist
           BIN_DIR="target/${{ matrix.target }}/release"
-          for tool in xsysroot xdroid xmac xios xlinux xohos; do
+          for tool in xsysroot xdroid xmac xios xlinux xohos xwindows; do
             ARCHIVE="dist/${tool}-${{ matrix.target }}.tar.gz"
             tar -czf "$ARCHIVE" -C "$BIN_DIR" "$tool"
             if command -v sha256sum >/dev/null 2>&1; then
@@ -162,7 +162,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           $binDir = "target/${{ matrix.target }}/release"
-          foreach ($tool in @("xsysroot", "xdroid", "xmac", "xios", "xlinux", "xohos")) {
+          foreach ($tool in @("xsysroot", "xdroid", "xmac", "xios", "xlinux", "xohos", "xwindows")) {
             $exe = Join-Path $binDir "$tool.exe"
             $archive = Join-Path "dist" "$tool-${{ matrix.target }}.zip"
             Compress-Archive -Path $exe -DestinationPath $archive -Force

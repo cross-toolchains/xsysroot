@@ -61,3 +61,8 @@ changelog_update = false
 name = "xohos"
 version_group = "xsysroot"
 changelog_update = false
+
+[[package]]
+name = "xwindows"
+version_group = "xsysroot"
+changelog_update = false

@@ -96,6 +96,7 @@ jobs:
           "$BIN_DIR/xlinux" list
           "$BIN_DIR/xohos" list
           "$BIN_DIR/xios" list
+          "$BIN_DIR/xwindows" list
 
       - name: Prepare test C source
         shell: bash
@@ -205,6 +206,26 @@ jobs:
             "$WORK/hello.c" -o "$WORK/hello_ohos"
           test -s "$WORK/hello_ohos"
           if command -v file >/dev/null 2>&1; then file "$WORK/hello_ohos"; fi
+
+      - name: Cross-compile for Windows MinGW/UCRT & MSVC (xwindows)
+        shell: bash
+        run: |
+          BIN_DIR="$PWD/target/release"
+          WORK="$RUNNER_TEMP/xtest"
+          EXT=""
+          if [ "${{ runner.os }}" = "Windows" ]; then EXT=".cmd"; fi
+
+          "$BIN_DIR/xwindows" splat --target x86_64-pc-windows-gnullvm --verbose --output "$WORK/win-mingw"
+          "$WORK/win-mingw/bin/x86_64-pc-windows-gnullvm-clang${EXT}" \
+            "$WORK/hello.c" -o "$WORK/hello_win_mingw.exe"
+          test -s "$WORK/hello_win_mingw.exe"
+          if command -v file >/dev/null 2>&1; then file "$WORK/hello_win_mingw.exe"; fi
+
+          "$BIN_DIR/xwindows" splat --target x86_64-pc-windows-msvc --accept-license --verbose --output "$WORK/win-msvc"
+          "$WORK/win-msvc/bin/x86_64-pc-windows-msvc-clang${EXT}" \
+            "$WORK/hello.c" -o "$WORK/hello_win_msvc.exe"
+          test -s "$WORK/hello_win_msvc.exe"
+          if command -v file >/dev/null 2>&1; then file "$WORK/hello_win_msvc.exe"; fi
 
       - name: Rust cargo cross-compile smoke (all 6 targets on Linux, macOS & Windows)
         shell: bash

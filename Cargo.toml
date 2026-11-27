@@ -8,6 +8,7 @@ members = [
     "crates/xlinux",
     "crates/xmac",
     "crates/xohos",
+    "crates/xwindows",
 ]
 
 [workspace.package]
@@ -33,3 +34,4 @@ xios = { path = "crates/xios", version = "0.1.0" }
 xlinux = { path = "crates/xlinux", version = "0.1.0" }
 xmac = { path = "crates/xmac", version = "0.1.0" }
 xohos = { path = "crates/xohos", version = "0.1.0" }
+xwindows = { path = "crates/xwindows", version = "0.1.0" }

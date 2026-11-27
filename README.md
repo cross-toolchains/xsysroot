@@ -4,7 +4,7 @@
 
 **Minimal, hermetic target sysroots for cross-compilation — from anywhere.**
 
-Pure-Rust monorepo of single-binary sysroot fetchers for Android, macOS, iOS, Linux (`glibc` & `musl`), and OpenHarmony —
+Pure-Rust monorepo of single-binary sysroot fetchers for Android, macOS, iOS, Linux (`glibc` & `musl`), Windows (`msvc` & `mingw`), and OpenHarmony —
 no Docker, no heavy IDEs, and nothing redistributed.
 
 [![crates.io](https://img.shields.io/crates/v/xsysroot.svg)](https://crates.io/crates/xsysroot)
@@ -23,13 +23,12 @@ no Docker, no heavy IDEs, and nothing redistributed.
 | [**`xios`**](crates/xios/README.md) | iOS / iOS Simulator (`arm64` / `x86_64`) | User-supplied `Xcode.xip` / `Xcode.app` | local |
 | [**`xlinux`**](crates/xlinux/README.md) | Linux (`glibc 2.28/2.31/2.36` & `musl`) | Debian `.deb` / Alpine `.apk` | **~ 9–11 MiB** |
 | [**`xohos`**](crates/xohos/README.md) | OpenHarmony (`aarch64` / `armv7` / `x86_64`) | OpenHarmony public SDK mirror | streaming |
+| [**`xwindows`**](crates/xwindows/README.md) | Windows (`msvc` & `gnullvm` / `gnu`) | Microsoft VS Build Tools (`xwin`) & `llvm-mingw` (HTTP Range) | **~ 27 MiB** (MinGW) |
 | [**`xsysroot`**](crates/xsysroot) | Unified CLI & facade library | Dispatches all platforms above | — |
-
-> For Windows MSVC (`*-pc-windows-msvc`), pair with [Jake-Shadle/xwin](https://github.com/Jake-Shadle/xwin).
 
 ## 📦 Install
 
-Install the unified `xsysroot` CLI (or any individual crate: `xdroid`, `xmac`, `xios`, `xlinux`, `xohos`).
+Install the unified `xsysroot` CLI (or any individual crate: `xdroid`, `xmac`, `xios`, `xlinux`, `xohos`, `xwindows`).
 
 ### From binary
 
@@ -64,6 +63,8 @@ xsysroot splat android --accept-license
 xsysroot splat macos   --accept-license
 xsysroot splat linux   --target x86_64-unknown-linux-gnu.2.31
 xsysroot splat ohos
+xsysroot splat windows --target x86_64-pc-windows-msvc --accept-license
+xsysroot splat windows --target x86_64-pc-windows-gnullvm
 xsysroot splat ios     --from /path/to/Xcode.xip
 ```
 

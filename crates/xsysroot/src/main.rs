@@ -1,7 +1,7 @@
 //! `xsysroot` unified CLI entry point.
 //!
 //! Dispatches `xsysroot <platform> ...` across `android` (`xdroid`), `macos` (`xmac`),
-//! `ios` (`xios`), `linux` (`xlinux`), and `ohos` (`xohos`).
+//! `ios` (`xios`), `linux` (`xlinux`), `ohos` (`xohos`), and `windows` (`xwindows`).
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -18,14 +18,14 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Splat a target sysroot by platform (`android`, `macos`, `ios`, `linux`, `ohos`).
+    /// Splat a target sysroot by platform (`android`, `macos`, `ios`, `linux`, `ohos`, `windows`).
     Splat {
-        /// Target platform (`android`, `macos`, `ios`, `linux`, `ohos`).
+        /// Target platform (`android`, `macos`, `ios`, `linux`, `ohos`, `windows`).
         platform: String,
-        /// Accept upstream vendor license agreement (Android / Apple).
+        /// Accept upstream vendor license agreement (Android / Apple / Microsoft).
         #[arg(long)]
         accept_license: bool,
-        /// Optional target triple (used for `linux`, e.g. `x86_64-unknown-linux-gnu.2.31`).
+        /// Optional target triple (used for `linux` and `windows`, e.g. `x86_64-pc-windows-gnullvm`).
         #[arg(short, long)]
         target: Option<String>,
         /// Optional output directory override.
@@ -74,6 +74,11 @@ fn main() -> ExitCode {
                         "ohos".into(),
                         "xohos".into(),
                         "OpenHarmony public SDK mirror".into(),
+                    ],
+                    vec![
+                        "windows".into(),
+                        "xwindows".into(),
+                        "Microsoft VS Build Tools (MSVC) / llvm-mingw (UCRT)".into(),
                     ],
                 ],
             );
@@ -163,8 +168,25 @@ fn main() -> ExitCode {
                         verbose,
                     })
                 }
+                "windows" | "win" => {
+                    let raw = target
+                        .as_deref()
+                        .unwrap_or(xwindows::target::DEFAULT_TARGET);
+                    match xwindows::target::WindowsTarget::parse(raw) {
+                        Ok(parsed) => {
+                            let mut opts = xwindows::splat::SplatOptions::for_target(parsed);
+                            if let Some(out) = output {
+                                opts.output_dir = out;
+                            }
+                            opts.accept_license = accept_license;
+                            opts.verbose = verbose;
+                            xwindows::splat::run_splat(&opts)
+                        }
+                        Err(e) => Err(e),
+                    }
+                }
                 other => Err(format!(
-                    "unknown platform `{other}` (supported: android, macos, ios, linux, ohos)"
+                    "unknown platform `{other}` (supported: android, macos, ios, linux, ohos, windows)"
                 )),
             };
             match res {

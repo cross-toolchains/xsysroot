@@ -17,6 +17,7 @@ xlinux.workspace = true
 xmac.workspace = true
 xohos.workspace = true
 xsysroot-core.workspace = true
+xwindows.workspace = true
 
 [package.metadata.binstall]
 pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.{ archive-format }"
