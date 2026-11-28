@@ -12,7 +12,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["The Xsysroot Project Developers and Contributors"]
 license = "MIT OR Apache-2.0"
@@ -28,10 +28,10 @@ lzma-rs = "0.3"
 ureq = { version = "3", default-features = false, features = ["rustls"] }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 
-xsysroot-core = { path = "crates/xsysroot-core", version = "0.1.0" }
-xdroid = { path = "crates/xdroid", version = "0.1.0" }
-xios = { path = "crates/xios", version = "0.1.0" }
-xlinux = { path = "crates/xlinux", version = "0.1.0" }
-xmac = { path = "crates/xmac", version = "0.1.0" }
-xohos = { path = "crates/xohos", version = "0.1.0" }
-xwindows = { path = "crates/xwindows", version = "0.1.0" }
+xsysroot-core = { path = "crates/xsysroot-core", version = "0.1.1" }
+xdroid = { path = "crates/xdroid", version = "0.1.1" }
+xios = { path = "crates/xios", version = "0.1.1" }
+xlinux = { path = "crates/xlinux", version = "0.1.1" }
+xmac = { path = "crates/xmac", version = "0.1.1" }
+xohos = { path = "crates/xohos", version = "0.1.1" }
+xwindows = { path = "crates/xwindows", version = "0.1.1" }
