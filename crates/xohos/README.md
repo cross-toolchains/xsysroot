@@ -166,6 +166,32 @@ The extracted `sysroot/` contains everything needed to compile and link native O
 
 Not included: DevEco Studio, ArkTS/ETS compiler, Previewer, `hdc`, or `.hap`/`.har`/`.app` packaging and signing tools.
 
+## 🦀 Library
+
+```sh
+cargo add xohos --no-default-features
+```
+
+```toml
+[dependencies]
+xohos = { version = "0.1", default-features = false }
+```
+
+```rust
+use xohos::splat::{self, SplatOptions};
+
+let cache_dir = splat::default_cache_dir();
+let opts = SplatOptions {
+    version: "5.0.0".to_string(),
+    from: None,
+    output_dir: splat::default_splat_dir(&cache_dir),
+    cache_dir,
+    clang_bin: None,
+    verbose: false,
+};
+splat::run_splat(&opts)?;
+```
+
 ## ⚖️ License & Legal
 
 The `xohos` _tool_ is dual-licensed under either of [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT) at your option.

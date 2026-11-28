@@ -9,15 +9,24 @@ repository.workspace = true
 keywords = ["sysroot", "sdk", "toolchain", "cross", "compilation"]
 categories.workspace = true
 
+[features]
+default = ["cli"]
+cli = ["dep:clap"]
+
+[[bin]]
+name = "xsysroot"
+path = "src/main.rs"
+required-features = ["cli"]
+
 [dependencies]
-clap.workspace = true
-xdroid.workspace = true
-xios.workspace = true
-xlinux.workspace = true
-xmac.workspace = true
-xohos.workspace = true
+clap = { workspace = true, optional = true }
+xdroid = { workspace = true, default-features = false }
+xios = { workspace = true, default-features = false }
+xlinux = { workspace = true, default-features = false }
+xmac = { workspace = true, default-features = false }
+xohos = { workspace = true, default-features = false }
 xsysroot-core.workspace = true
-xwindows.workspace = true
+xwindows = { workspace = true, default-features = false }
 
 [package.metadata.binstall]
 pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.{ archive-format }"

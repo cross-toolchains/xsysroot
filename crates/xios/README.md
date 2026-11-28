@@ -143,6 +143,33 @@ Xcode.xip ──► xar (zlib TOC: Content) ──► pbzx (chunked XZ) ──�
 
 Not included: the iOS Simulator Runtime image (for booting simulators), `xcodebuild`, `codesign`, `actool`, `ibtool`, the Swift compiler, or `.ipa` packaging/signing tools. For cross-platform code signing, see [`xsign`](https://crates.io/crates/xsign) / [`apple-codesign`](https://crates.io/crates/apple-codesign).
 
+## 🦀 Library
+
+```sh
+cargo add xios --no-default-features
+```
+
+```toml
+[dependencies]
+xios = { version = "0.1", default-features = false }
+```
+
+```rust
+use std::path::PathBuf;
+use xios::splat::{self, SplatOptions};
+
+let cache_dir = splat::default_cache_dir();
+let opts = SplatOptions {
+    from: Some(PathBuf::from("/path/to/Xcode.xip")),
+    output_dir: splat::default_splat_dir(&cache_dir),
+    min_ios: "16.0".to_string(),
+    include_simulator: true,
+    clang_bin: None,
+    verbose: false,
+};
+splat::run_splat(&opts)?;
+```
+
 ## ⚖️ License & Legal
 
 The `xios` _tool_ is dual-licensed under either of [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT) at your option.

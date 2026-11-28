@@ -9,8 +9,17 @@ repository.workspace = true
 keywords = ["linux", "glibc", "sysroot", "cross", "compilation"]
 categories.workspace = true
 
+[features]
+default = ["cli"]
+cli = ["dep:clap"]
+
+[[bin]]
+name = "xlinux"
+path = "src/main.rs"
+required-features = ["cli"]
+
 [dependencies]
-clap.workspace = true
+clap = { workspace = true, optional = true }
 flate2.workspace = true
 indicatif.workspace = true
 lzma-rs.workspace = true

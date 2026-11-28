@@ -204,6 +204,33 @@ The extracted `sysroot/` contains everything needed to compile and link native A
 
 Not included (not part of native cross-compilation): Android Studio, `sdkmanager`, `adb`, `d8`, Gradle, Java/JDK, or `.apk`/`.aab` packaging tools.
 
+## 🦀 Library
+
+```sh
+cargo add xdroid --no-default-features
+```
+
+```toml
+[dependencies]
+xdroid = { version = "0.1", default-features = false }
+```
+
+```rust
+use xdroid::splat::{self, SplatOptions};
+
+let cache_dir = splat::default_cache_dir();
+let opts = SplatOptions {
+    ndk_version: "r27c".to_string(),
+    api_level: 24,
+    output_dir: splat::default_splat_dir(&cache_dir),
+    cache_dir,
+    clang_bin: None,
+    accept_license: true,
+    verbose: false,
+};
+splat::run_splat(&opts)?;
+```
+
 ## ⚖️ License & Legal
 
 The `xdroid` _tool_ is dual-licensed under either of [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT) at your option.

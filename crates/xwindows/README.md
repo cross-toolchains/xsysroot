@@ -164,6 +164,26 @@ export CC_x86_64_pc_windows_gnullvm=~/.cache/xwindows/splat/x86_64-pc-windows-gn
 cargo build --target x86_64-pc-windows-gnullvm --release
 ```
 
+## 🦀 Library
+
+```sh
+cargo add xwindows --no-default-features
+```
+
+```toml
+[dependencies]
+xwindows = { version = "0.1", default-features = false }
+```
+
+```rust
+use xwindows::splat::{self, SplatOptions};
+use xwindows::target::WindowsTarget;
+
+let target = WindowsTarget::parse("x86_64-pc-windows-gnullvm")?;
+let opts = SplatOptions::for_target(target);
+splat::run_splat(&opts)?;
+```
+
 ## ⚖️ License & Legal
 
 The `xwindows` _tool_ is dual-licensed under either of [Apache-2.0](../../LICENSE-APACHE) or [MIT](../../LICENSE-MIT) at your option.

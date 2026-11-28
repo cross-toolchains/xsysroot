@@ -9,12 +9,21 @@ repository.workspace = true
 keywords = ["windows", "msvc", "mingw", "sysroot", "cross-compilation"]
 categories.workspace = true
 
+[features]
+default = ["cli"]
+cli = ["dep:clap"]
+
+[[bin]]
+name = "xwindows"
+path = "src/main.rs"
+required-features = ["cli"]
+
 [dependencies]
 anyhow = "1.0"
 bytes = "1.10"
 cab = "0.6"
 camino = "1.0"
-clap.workspace = true
+clap = { workspace = true, optional = true }
 cli-table.workspace = true
 crossbeam-channel = "0.5"
 indicatif.workspace = true

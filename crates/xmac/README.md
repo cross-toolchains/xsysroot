@@ -192,6 +192,32 @@ swcdn.apple.com  ──► CLTools_macOS*_SDK.pkg           (~56 MiB, no auth)
 
 Not included (macOS-only tools not shipped in the SDK sub-package): `codesign`, `xcodebuild`, `actool`, `ibtool`, and the Swift compiler. For code signing and notarization from Linux/Windows, see [`xsign`](https://crates.io/crates/xsign) / [`apple-codesign`](https://crates.io/crates/apple-codesign).
 
+## 🦀 Library
+
+```sh
+cargo add xmac --no-default-features
+```
+
+```toml
+[dependencies]
+xmac = { version = "0.1", default-features = false }
+```
+
+```rust
+use xmac::splat::{self, SplatOptions};
+
+let cache_dir = splat::default_cache_dir();
+let opts = SplatOptions {
+    product_id: None,
+    output_dir: splat::default_splat_dir(&cache_dir),
+    cache_dir,
+    clang_bin: None,
+    accept_license: true,
+    verbose: false,
+};
+splat::run_splat(&opts)?;
+```
+
 ## ⚖️ License & Legal
 
 The `xmac` _tool_ is dual-licensed under either of [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT) at your option.

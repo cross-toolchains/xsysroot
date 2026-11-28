@@ -68,6 +68,25 @@ xsysroot splat windows --target x86_64-pc-windows-gnullvm
 xsysroot splat ios     --from /path/to/Xcode.xip
 ```
 
+## 🦀 Library
+
+```sh
+cargo add xsysroot --no-default-features
+```
+
+```toml
+[dependencies]
+xsysroot = { version = "0.1", default-features = false }
+```
+
+```rust
+use xsysroot::xwindows::{splat::{self, SplatOptions}, target::WindowsTarget};
+
+let target = WindowsTarget::parse("x86_64-pc-windows-gnullvm")?;
+let opts = SplatOptions::for_target(target);
+splat::run_splat(&opts)?;
+```
+
 ## ⚖️ License & Legal
 
 All tools in this repository are dual-licensed under either of [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT) at your option.

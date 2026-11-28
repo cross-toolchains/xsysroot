@@ -9,8 +9,17 @@ repository.workspace = true
 keywords = ["android", "ndk", "sysroot", "cross", "compilation"]
 categories.workspace = true
 
+[features]
+default = ["cli"]
+cli = ["dep:clap"]
+
+[[bin]]
+name = "xdroid"
+path = "src/main.rs"
+required-features = ["cli"]
+
 [dependencies]
-clap.workspace = true
+clap = { workspace = true, optional = true }
 indicatif.workspace = true
 ureq.workspace = true
 xsysroot-core.workspace = true

@@ -162,6 +162,35 @@ The extracted `sysroot/` contains C/POSIX/C++ headers, Linux kernel UAPI headers
 
 Not included: host compilers (`gcc`), system daemons, package managers, or third-party desktop libraries (GTK, X11, Wayland, OpenSSL).
 
+## 🦀 Library
+
+```sh
+cargo add xlinux --no-default-features
+```
+
+```toml
+[dependencies]
+xlinux = { version = "0.1", default-features = false }
+```
+
+```rust
+use xlinux::splat::{self, SplatOptions};
+use xlinux::target::LinuxTarget;
+
+let (target, glibc) = LinuxTarget::parse("x86_64-unknown-linux-gnu.2.31")?;
+let glibc = glibc.unwrap_or_else(|| "2.31".to_string());
+let cache_dir = splat::default_cache_dir();
+let opts = SplatOptions {
+    output_dir: splat::default_splat_dir(&cache_dir, &target, &glibc),
+    target,
+    glibc,
+    cache_dir,
+    clang_bin: None,
+    verbose: false,
+};
+splat::run_splat(&opts)?;
+```
+
 ## ⚖️ License & Legal
 
 The `xlinux` _tool_ is dual-licensed under either of [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT) at your option.
